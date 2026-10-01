@@ -7,10 +7,55 @@ import { Modal, Pill, Stepper, Vacio, Cargando, useAccion } from '../ui';
 import { aFecha, cant, cuando, dRel, estadoDe, hoy, money } from '../util';
 import { DIAS_SEMANA, FORMAS_PAGO, estadoCuenta, idArticulo } from '../../shared/negocio.js';
 
-const PASOS = ['pendiente', 'confirmado', 'produccion', 'listo', 'entregado'];
-const NOMBRES = ['Recibido', 'Confirmado', 'En el horno', 'Listo', 'Entregado'];
-const PASOS_MIN = ['reservado', 'listo', 'entregado'];
-const NOMBRES_MIN = ['Reservado', 'Preparado', 'Retirado'];
+// Pasos del seguimiento según el tipo de cliente y la forma de entrega: [estado, nombre, campo con la hora, ícono].
+const ICONOS = {
+  recibido: 'M9 12l2 2 4-4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+  confirmado: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
+  horno: 'M12 2c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.6.7-2.7 1.5-3.6M6 14a6 6 0 0 0 12 0',
+  listo: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8',
+  camino: 'M1 4h13v12H1zM14 8h4l3 3v5h-7M8 18.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM20 18.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0z',
+  entregado: 'M3 10.5L12 3l9 7.5V21H3zM9 21v-6h6v6',
+};
+function pasosDe(o) {
+  const envio = o.modoEntrega !== 'retiro';
+  if (o.tipoCliente === 'minorista') {
+    return [['reservado', 'Reservado', 'creado', 'recibido'], ['listo', 'Preparado', 'listoEn', 'listo'],
+      ...(envio ? [['en_camino', 'En camino', 'en_caminoEn', 'camino']] : []), ['entregado', envio ? 'Entregado' : 'Retirado', 'entregadoEn', 'entregado']];
+  }
+  return [['pendiente', 'Recibido', 'creado', 'recibido'], ['confirmado', 'Confirmado', 'confirmadoEn', 'confirmado'], ['produccion', 'En el horno', 'produccionEn', 'horno'],
+    ['listo', 'Listo', 'listoEn', 'listo'], ...(envio ? [['en_camino', 'En camino', 'en_caminoEn', 'camino']] : []), ['entregado', envio ? 'Entregado' : 'Retirado', 'entregadoEn', 'entregado']];
+}
+const FRASE = {
+  pendiente: 'Lo estamos revisando. Te avisamos cuando lo confirmemos.',
+  reservado: 'Tu reserva está anotada; la preparamos con lo que hay en el despacho.',
+  confirmado: 'Confirmado: entra en la producción del día anterior a la entrega.',
+  produccion: 'Tu pedido está en el horno.',
+  en_camino: 'El repartidor ya salió con tu pedido.',
+};
+
+function Seguimiento({ o }) {
+  const pasos = pasosDe(o);
+  const k = pasos.findIndex(([e]) => e === o.estado);
+  const ultimo = o.intentos?.[o.intentos.length - 1];
+  const frase = o.estado === 'listo'
+    ? (o.modoEntrega === 'retiro' ? 'Ya está listo: podés pasar a retirarlo.' : 'Está listo y sale en el próximo reparto.')
+    : o.estado === 'entregado' ? null : FRASE[o.estado];
+  return (
+    <>
+      <ol className="seguimiento" aria-label={`Seguimiento: paso ${k + 1} de ${pasos.length}`}>
+        {pasos.map(([e, nombre, campo, ic], j) => (
+          <li key={e} className={j < k ? 'hecho' : j === k ? 'actual' : ''} aria-current={j === k ? 'step' : undefined}>
+            <span className="seg-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={ICONOS[ic]} /></svg></span>
+            <span className="seg-n">{nombre}</span>
+            <span className="seg-t">{j <= k && o[campo] ? cuando(o[campo]) : ''}</span>
+          </li>
+        ))}
+      </ol>
+      {frase && <p className="seg-frase">{frase}</p>}
+      {ultimo && ['listo', 'en_camino'].includes(o.estado) && <div className="note warn small">Pasamos y no pudimos entregarlo ({ultimo.motivo}). Te vamos a contactar para coordinar.</div>}
+    </>
+  );
+}
 
 export default function MisPedidos() {
   const { perfil } = useAuth();
@@ -73,9 +118,6 @@ export default function MisPedidos() {
 
       {!lista.length && <section className="card"><Vacio>Todavía no hiciste pedidos. <Link className="linkbtn" to="/catalogo">Ir al catálogo</Link></Vacio></section>}
       {lista.map((o) => {
-        const min = o.tipoCliente === 'minorista';
-        const k = (min ? PASOS_MIN : PASOS).indexOf(o.estado);
-        const nombres = min ? NOMBRES_MIN : NOMBRES;
         return (
           <section className="card" key={o.id}>
             <div className="card-h" style={{ marginBottom: 4 }}>
@@ -85,7 +127,7 @@ export default function MisPedidos() {
             </div>
             {o.estado === 'cancelado'
               ? <div className="note bad" style={{ marginTop: 8 }}>Este pedido se canceló.</div>
-              : <div className="track">{nombres.map((n, j) => <div key={n} className={j <= k ? 'on' : ''}><i />{n}</div>)}</div>}
+              : <Seguimiento o={o} />}
             <div className="row" style={{ marginTop: 12 }}>
               <button className="btn sm" onClick={() => repetir(o)}>Repetir pedido</button>
               <Link className="btn sm" to={`/comprobante?tipo=pedido&id=${o.id}`} target="_blank">Comprobante PDF</Link>

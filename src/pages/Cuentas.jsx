@@ -4,9 +4,9 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { api } from '../api';
 import { useData } from '../data';
-import { Contador, Modal, Pill, Vacio, useAccion } from '../ui';
+import { BotonWhatsApp, Contador, Modal, Pill, Vacio, useAccion } from '../ui';
 import { aFecha, cuando, dLarga, hoy, money } from '../util';
-import { PAGOS_DESPACHO, estadoCuenta } from '../../shared/negocio.js';
+import { PAGOS_DESPACHO, estadoCuenta, linkWhatsApp } from '../../shared/negocio.js';
 
 const PILL = { 'al-dia': ['Al día', 'ok'], debe: ['Con saldo', 'warn'], vencida: ['Vencida', 'bad'] };
 
@@ -48,6 +48,7 @@ export default function Cuentas() {
                 <td className="r"><PlazoInput cliente={c} plazo={e.plazo} /></td>
                 <td><Pill e={PILL[e.estado]} /></td>
                 <td><div className="row" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                  {e.saldo > 0 && <BotonWhatsApp titulo="Recordarle el saldo por WhatsApp" href={linkWhatsApp(c.telefono, `Hola, te escribimos de Panificación El Sol Siciliano. Te recordamos que el saldo de tu cuenta corriente es de ${money(e.saldo)}${e.estado === 'vencida' ? `, con ${e.dias - e.plazo} días de atraso` : ''}. Podés pagarlo en efectivo al repartidor o por transferencia. ¡Gracias!`)}>Recordar</BotonWhatsApp>}
                   <button className="btn sm" onClick={() => setVer(c)}>Movimientos</button>
                   <button className="btn sm primary" disabled={e.saldo <= 0} onClick={() => setPago(c)}>Registrar pago</button>
                 </div></td>

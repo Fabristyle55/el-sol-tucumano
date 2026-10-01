@@ -3,12 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useData } from '../data';
-import { Modal, Pill, Vacio, Cargando, useAccion } from '../ui';
-import { CANAL_LABEL, ENTREGA_LABEL, TIPO_LABEL, cant, dRel, dShort, estadoDe, hhmm, aFecha, money } from '../util';
+import { BotonWhatsApp, Modal, Pill, Vacio, Cargando, useAccion } from '../ui';
+import { CANAL_LABEL, ENTREGA_LABEL, TIPO_LABEL, cant, dRel, dShort, estadoDe, hhmm, aFecha, money, waPedido } from '../util';
 import { DIAS_SEMANA } from '../../shared/negocio.js';
 import PedidoModal from '../components/PedidoModal';
 
-const FILTROS = [['activos', 'Activos'], ['pendiente', 'Por confirmar'], ['reservado', 'Reservas'], ['confirmado', 'Confirmados'], ['produccion', 'En producción'], ['listo', 'Listos'], ['entregado', 'Entregados'], ['cancelado', 'Cancelados']];
+const FILTROS = [['activos', 'Activos'], ['pendiente', 'Por confirmar'], ['reservado', 'Reservas'], ['confirmado', 'Confirmados'], ['produccion', 'En producción'], ['listo', 'Listos'], ['en_camino', 'En camino'], ['entregado', 'Entregados'], ['cancelado', 'Cancelados']];
 const activo = (p) => !['entregado', 'cancelado'].includes(p.estado);
 
 export default function Pedidos() {
@@ -46,7 +46,7 @@ export default function Pedidos() {
       <button className="btn sm primary" disabled={ocupado} onClick={() => accion(p, 'confirmar', `Pedido #${p.numero} confirmado`)}>Confirmar</button>
       <button className="btn sm ghost-bad" disabled={ocupado} onClick={() => setCancelar(p)}>Cancelar</button></>);
     if (p.estado === 'pendiente') return <span className="muted small">Espera al gerente</span>;
-    if (p.estado === 'listo') return <button className="btn sm" disabled={ocupado} onClick={() => accion(p, 'entregar', `Pedido #${p.numero} entregado`)}>Marcar entregado</button>;
+    if (p.estado === 'listo' || p.estado === 'en_camino') return <button className="btn sm" disabled={ocupado} onClick={() => accion(p, 'entregar', `Pedido #${p.numero} entregado`)}>Marcar entregado</button>;
     if (p.estado === 'confirmado' && g) return <button className="btn sm" onClick={() => nav(`/planificacion?d=${p.entrega}`)}>Planificar</button>;
     return null;
   };
@@ -60,6 +60,7 @@ export default function Pedidos() {
         <div className="row">
           <select aria-label="Tipo de cliente" value={tipo} onChange={(e) => filtro(f, e.target.value)}><option value="todos">Todos los clientes</option><option value="mayorista">Mayoristas</option><option value="minorista">Minoristas</option></select>
           <Link className="btn" to="/reparto">Hoja de reparto</Link>
+          <Link className="btn" to="/entregas">Entregas</Link>
           {g && <button className="btn" onClick={() => setFijos(true)}>Pedidos fijos <span className="badge n">{pedidosFijos.filter((x) => x.activo).length}</span></button>}
           <button className="btn primary" onClick={() => setNuevo(true)}>Cargar pedido</button>
         </div>
@@ -85,10 +86,15 @@ export default function Pedidos() {
                     <div className="muted" style={{ marginTop: 6 }}>
                       {ENTREGA_LABEL[p.modoEntrega || 'envio']} · Pago: {p.pago}{p.telefono ? ` · Tel. ${p.telefono}` : ''} · Cargado {aFecha(p.creado) ? `${dShort(aFecha(p.creado).toISOString().slice(0, 10))} ${hhmm(p.creado)}` : ''} por {p.creadoPor}
                       {p.direccion ? ` · ${p.direccion}` : ''}{p.notas ? ` · Nota: ${p.notas}` : ''}
+                      {p.repartidor ? ` · Repartidor: ${p.repartidor}` : ''}{p.cobrado != null ? ` · Cobró ${money(p.cobrado)} (${p.pagoCobrado || p.pago})` : ''}
+                      {p.intentos?.length ? ` · No se pudo entregar: ${p.intentos.map((x) => x.motivo).join('; ')}` : ''}
+                      {p.descuento > 0 ? ` · Descuento ${money(p.descuento)}${p.cupon ? ` (cupón ${p.cupon})` : ''}` : ''}
                     </div>
                     <div className="row" style={{ marginTop: 8 }}>
                       <Link className="btn sm" to={`/comprobante?tipo=pedido&id=${p.id}`} target="_blank">{p.tipoCliente === 'minorista' ? 'Comprobante' : 'Remito'} PDF</Link>
                       <button className="btn sm" onClick={() => setRepetir(p)}>Repetir pedido</button>
+                      <BotonWhatsApp href={waPedido(p)}>Avisar por WhatsApp</BotonWhatsApp>
+                      {!p.telefono && <span className="muted small">Sin teléfono para WhatsApp</span>}
                     </div>
                   </td></tr>
                 )}

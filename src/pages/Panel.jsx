@@ -1,8 +1,12 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../firebase';
+import { BarrasApiladas, BarrasH } from '../components/Graficos';
 import { useData } from '../data';
 import { cuando, dRel, dShort, fq, hoy, manana, money, sumarDias } from '../util';
-import { estadoCuenta, proyeccion, vaAProduccion, vencimiento } from '../../shared/negocio.js';
-import { Contador } from '../ui';
+import { costoProducto, estadoCuenta, margen, precioPara, proyeccion, rangoDias, vaAProduccion, vencimiento } from '../../shared/negocio.js';
+import { Cargando, Contador } from '../ui';
 
 const COL = { warn: 'var(--warn)', info: 'var(--info)', bad: 'var(--bad)', ok: 'var(--ok)' };
 
@@ -62,6 +66,7 @@ export default function Panel() {
           <Grafico pedidos={d.pedidos} />
         </section>
       </div>
+      <Ventas30 />
       <div className="grid2">
         <section className="card"><div className="card-h"><h2>Más pedidos esta semana</h2><span className="muted small">unidades</span></div><Top pedidos={d.pedidos} /></section>
         <section className="card"><div className="card-h"><h2>Actividad reciente</h2><span className="muted small">trazabilidad</span></div>
@@ -124,5 +129,91 @@ function Top({ pedidos }) {
         <div className="meter" style={{ width: '100%', marginTop: 5 }}><i style={{ width: `${(q / mx) * 100}%`, background: 'var(--verde)' }} /></div>
       </div></div>
     ))}</div>
+  );
+}
+
+const traer = async (col, campo, desde) => (await getDocs(query(collection(db, col), where(campo, '>=', desde)))).docs.map((x) => x.data());
+
+/** Ventas de los últimos 30 días (con comparación contra los 30 anteriores), ranking de productos y margen. */
+function Ventas30() {
+  const { productos, insumosPorId } = useData();
+  const T = hoy();
+  const desde = sumarDias(T, -29); const desdeAnt = sumarDias(T, -59);
+  const [datos, setDatos] = useState(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let vivo = true;
+    Promise.all([traer('pedidos', 'entrega', desdeAnt), traer('ventas', 'dia', desdeAnt)])
+      .then(([pedidos, ventas]) => vivo && setDatos({ pedidos, ventas }))
+      .catch((e) => vivo && setError(e.code || e.message));
+    return () => { vivo = false; };
+  }, [desdeAnt]);
+
+  const r = useMemo(() => {
+    if (!datos) return null;
+    const dias = rangoDias(desde, T);
+    const porDia = Object.fromEntries(rangoDias(desdeAnt, T).map((d) => [d, [0, 0]]));
+    const prods = {};
+    const sumar = (pid, nombre, total) => { if (!pid) return; const x = (prods[pid] ||= { nombre, total: 0 }); x.total += total; };
+    let nPed = 0; let nPedAnt = 0;
+    datos.pedidos.filter((p) => p.estado === 'entregado' && p.entrega <= T).forEach((p) => {
+      const d = porDia[p.entrega]; if (!d) return;
+      d[p.tipoCliente === 'minorista' ? 1 : 0] += p.total || 0;
+      if (p.entrega >= desde) { nPed++; (p.items || []).forEach((i) => sumar(i.productoId, i.nombre, Math.round(i.cantidad * i.precio) - (i.descuento || 0))); } else nPedAnt++;
+    });
+    datos.ventas.filter((v) => !v.anulada).forEach((v) => {
+      const d = porDia[v.dia]; if (!d) return;
+      d[1] += v.total || 0;
+      if (v.dia >= desde) { nPed++; (v.items || []).forEach((i) => sumar(i.productoId || (i.articuloId?.startsWith('e-') ? i.articuloId.slice(2) : null), i.nombre, i.subtotal || 0)); } else nPedAnt++;
+    });
+    const suma = (ds) => ds.reduce((a, d) => a + porDia[d][0] + porDia[d][1], 0);
+    const total = suma(dias); const anterior = suma(rangoDias(desdeAnt, sumarDias(desde, -1)));
+    return {
+      serie: dias.map((d) => ({ x: d, etiqueta: d.slice(8), titulo: dShort(d), valores: porDia[d] })),
+      total, anterior, var: anterior ? Math.round(((total - anterior) / anterior) * 100) : null,
+      ticket: nPed ? Math.round(total / nPed) : 0, nPed, nPedAnt,
+      mayorista: dias.reduce((a, d) => a + porDia[d][0], 0),
+      top: Object.values(prods).sort((a, b) => b.total - a.total).slice(0, 7),
+    };
+  }, [datos, desde, desdeAnt, T]);
+
+  const margenes = productos.filter((p) => p.activo !== false).map((p) => {
+    const c = costoProducto(p, insumosPorId);
+    const may = margen(precioPara(p, 'mayorista'), c.costo); const min = margen(precioPara(p, 'minorista'), c.costo);
+    return { nombre: p.nombre, valor: may.pct, completo: c.completo, costo: c.costo, detalle: `Costo ${money(c.costo)} · mayorista ${money(precioPara(p, 'mayorista'))} (deja ${money(may.monto)}) · minorista ${min.pct}%`, color: may.pct < 0 ? 'var(--bad)' : 'var(--verde)' };
+  }).filter((m) => m.completo && m.costo > 0).sort((a, b) => b.valor - a.valor);
+
+  if (error) return <div className="note bad">No se pudieron leer las ventas del último mes ({error}).</div>;
+  return (
+    <>
+      <section className="card">
+        <div className="card-h">
+          <div><h2>Ventas de los últimos 30 días</h2><p className="muted small" style={{ margin: '2px 0 0' }}>Pedidos entregados y ventas del despacho, por día.</p></div>
+          <div className="legend"><span style={{ '--c': 'var(--verde)' }}>Mayoristas</span><span style={{ '--c': 'var(--serie2)' }}>Minoristas y despacho</span></div>
+        </div>
+        {!r ? <Cargando /> : (
+          <>
+            <div className="mini-kpis">
+              <div><span className="muted small">Total vendido</span><b className="num">{money(r.total)}</b>
+                {r.var != null && <span className={`small var ${r.var >= 0 ? 'sube' : 'baja'}`}>{r.var >= 0 ? '▲' : '▼'} {Math.abs(r.var)}% vs. 30 días anteriores</span>}</div>
+              <div><span className="muted small">Ticket promedio</span><b className="num">{money(r.ticket)}</b><span className="small muted">{r.nPed} pedidos y ventas</span></div>
+              <div><span className="muted small">Parte mayorista</span><b className="num">{r.total ? Math.round((r.mayorista / r.total) * 100) : 0}%</b><span className="small muted">{money(r.mayorista)}</span></div>
+            </div>
+            {r.total ? <BarrasApiladas titulo="Ventas por día de los últimos 30 días" datos={r.serie} formato={money}
+              series={[{ nombre: 'Mayoristas', color: 'var(--verde)' }, { nombre: 'Minoristas y despacho', color: 'var(--serie2)' }]} />
+              : <div className="empty">Todavía no hay ventas en los últimos 30 días.</div>}
+          </>
+        )}
+      </section>
+      <div className="grid2">
+        <section className="card"><div className="card-h"><h2>Productos que más facturan</h2><span className="muted small">30 días</span></div>
+          {!r ? <Cargando /> : r.top.length ? <BarrasH filas={r.top.map((x) => ({ nombre: x.nombre, valor: x.total }))} formato={money} /> : <div className="empty">Sin ventas todavía.</div>}
+        </section>
+        <section className="card"><div className="card-h"><h2>Margen por producto</h2><span className="muted small">precio mayorista</span></div>
+          {margenes.length ? <BarrasH filas={margenes} formato={(n) => `${n}%`} max={100} /> : <div className="empty">Cargá el costo de los insumos en Stock para ver el margen.</div>}
+          <p className="muted small" style={{ margin: '8px 0 0' }}>Lo que queda del precio después de pagar los insumos de la receta. <Link className="linkbtn" to="/recetas">Ver recetas y costos</Link></p>
+        </section>
+      </div>
+    </>
   );
 }

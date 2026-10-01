@@ -68,9 +68,11 @@ export default function Comprobante() {
         <table className="items">
           <thead><tr><th>Cant.</th><th>Producto</th><th className="r">Precio</th><th className="r">Subtotal</th></tr></thead>
           <tbody>{items.map((i, k) => (
-            <tr key={k}><td className="num">{cant(i.cantidad, i.unidad)}</td><td>{i.nombre}{i.oferta ? <span className="small muted"> (oferta -{i.oferta} %)</span> : null}</td><td className="r num">{money(i.precio)}{i.unidad === 'kg' ? '/kg' : ''}</td><td className="r num">{money(subtotal(i))}</td></tr>
+            <tr key={k}><td className="num">{cant(i.cantidad, i.unidad)}</td><td>{i.nombre}{i.oferta ? <span className="small muted"> (oferta -{i.oferta} %)</span> : null}{i.descuento ? <span className="small muted"> (promo: −{money(i.descuento)})</span> : null}</td><td className="r num">{money(i.precio)}{i.unidad === 'kg' ? '/kg' : ''}</td><td className="r num">{money(subtotal(i))}</td></tr>
           ))}</tbody>
         </table>
+        {x.descuento > 0 && <div className="tot sub"><span>Subtotal</span><span className="num">{money(x.subtotal)}</span></div>}
+        {x.descuento > 0 && <div className="tot sub"><span>Descuentos{x.cupon ? ` (cupón ${x.cupon})` : ''}</span><span className="num">−{money(x.descuento)}</span></div>}
         <div className="tot"><span>Total</span><b className="num">{money(x.total)}</b></div>
         {x.notas && !venta ? <p className="small">Nota: {x.notas}</p> : null}
         {x.anulada && <p className="anulada">VENTA ANULADA</p>}
