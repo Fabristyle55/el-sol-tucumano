@@ -43,6 +43,7 @@ export function DataProvider({ children }) {
   const actividad = useCol(staff ? () => query(collection(db, 'actividad'), orderBy('fecha', 'desc'), limit(40)) : null, [staff]);
   const movimientos = useCol(staff ? () => query(collection(db, 'movimientos'), orderBy('fecha', 'desc'), limit(40)) : null, [staff]);
   const usuarios = useCol(rol === 'gerente' ? () => collection(db, 'usuarios') : null, [rol]);
+  const opiniones = useCol(rol ? () => collection(db, 'opiniones') : null, [rol]);
 
   const value = useMemo(() => {
     const prods = [...productos.data].sort((a, b) => (a.orden ?? 99) - (b.orden ?? 99) || a.nombre.localeCompare(b.nombre));
@@ -53,11 +54,11 @@ export function DataProvider({ children }) {
       insumos: ins, insumosPorId: porId(ins),
       pedidos: pedidos.data, ordenes: ordenes.data, compras: compras.data,
       clientes: [...clientes.data].sort((a, b) => a.nombre.localeCompare(b.nombre)),
-      actividad: actividad.data, movimientos: movimientos.data, usuarios: usuarios.data,
+      actividad: actividad.data, movimientos: movimientos.data, usuarios: usuarios.data, opiniones: opiniones.data,
       cargando: productos.cargando || pedidos.cargando || insumos.cargando,
       error: errores[0] || null,
     };
-  }, [productos, insumos, pedidos, ordenes, compras, clientes, actividad, movimientos, usuarios]);
+  }, [productos, insumos, pedidos, ordenes, compras, clientes, actividad, movimientos, usuarios, opiniones]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

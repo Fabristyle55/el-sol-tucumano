@@ -1,8 +1,8 @@
 import { fechaAR, sumarDias } from '../shared/negocio.js';
 
 export const ROLES = {
-  gerente: { label: 'Gerente', vistas: ['panel', 'pedidos', 'planificacion', 'produccion', 'stock', 'recetas', 'compras', 'usuarios'] },
-  mostrador: { label: 'Mostrador', vistas: ['pedidos'] },
+  gerente: { label: 'Gerente', vistas: ['panel', 'pedidos', 'planificacion', 'produccion', 'stock', 'productos', 'recetas', 'compras', 'usuarios'] },
+  mostrador: { label: 'Mostrador', vistas: ['pedidos', 'productos'] },
   panadero: { label: 'Panadero', vistas: ['produccion', 'recetas'] },
   deposito: { label: 'Depósito', vistas: ['stock', 'compras'] },
   cliente: { label: 'Cliente', vistas: ['catalogo', 'mis-pedidos'] },
@@ -14,10 +14,11 @@ export const VISTAS = {
   planificacion: ['Planificación', 'Cruza los pedidos confirmados con las recetas y calcula los insumos para cada día de entrega.'],
   produccion: ['Producción', 'Qué y cuánto amasar y hornear. Al terminar una orden se descuentan los insumos del stock.'],
   stock: ['Stock', 'Materias primas disponibles, reservadas para producción y por debajo del stock de seguridad.'],
+  productos: ['Productos', 'Fotos de cada producto para el catálogo y lo que opinan los clientes.'],
   recetas: ['Recetas', 'Insumos necesarios por unidad de cada producto. Son la base del cálculo de producción.'],
   compras: ['Compras', 'Insumos que van a quedar por debajo del stock de seguridad y pedidos a proveedores.'],
   usuarios: ['Usuarios y clientes', 'Cuentas del personal con su rol, comercios mayoristas y clientes minoristas.'],
-  catalogo: ['Catálogo', 'Elegí productos, día de entrega y si lo retirás o te lo enviamos. El negocio revisa tu pedido y te avisa.'],
+  catalogo: ['Catálogo', 'Elegí productos, día de entrega y si lo retirás o te lo enviamos. Tocá las estrellas para ver opiniones o dejar la tuya.'],
   'mis-pedidos': ['Mis pedidos', 'Seguí el estado de cada pedido hasta la entrega.'],
 };
 

@@ -35,6 +35,20 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Opiniones de productos: las escriben solo los clientes (una por producto, la propia).
+    // El id del documento es "<productoId>_<uid>". El gerente puede borrar cualquiera.
+    match /opiniones/{id} {
+      allow read: if conSesion();
+      allow create, update: if conSesion() && rol() == 'cliente'
+        && id == request.resource.data.productoId + '_' + request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.estrellas is int
+        && request.resource.data.estrellas >= 1 && request.resource.data.estrellas <= 5
+        && request.resource.data.comentario is string
+        && request.resource.data.comentario.size() <= 500;
+      allow delete: if conSesion() && (resource.data.uid == request.auth.uid || gerente());
+    }
+
     match /insumos/{id}     { allow read: if personal(); allow write: if false; }
     match /ordenes/{id}     { allow read: if personal(); allow write: if false; }
     match /compras/{id}     { allow read: if personal(); allow write: if false; }

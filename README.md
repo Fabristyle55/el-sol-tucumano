@@ -114,6 +114,13 @@ Cada acción queda registrada en la colección `actividad` con quién la hizo y 
 
 Si definís la variable `N8N_WEBHOOK_URL` con la URL de un webhook de n8n, el backend envía un evento en cada paso importante (`pedido_creado`, `pedido_confirmado`, `pedido_cancelado`, `pedido_entregado`, `ordenes_generadas`, `pedidos_listos`, `compra_autorizada`, `cliente_registrado`). Así se pueden reutilizar los flujos de n8n de la Etapa 1 para mandar Telegram al dueño y al repartidor, o mails al cliente.
 
+## Productos: fotos, IA y opiniones
+
+- **Imágenes:** el gerente y el mostrador entran a **Productos → Cambiar imagen** y pueden subir una foto (se achica sola en el navegador), generar una con IA o volver al dibujo. Las fotos se guardan en **Netlify Blobs** (gratis, sin configurar nada). La IA usa el servicio gratuito Pollinations, que no pide clave; por ser gratuito, la imagen lleva una pequeña marca "pollinations.ai".
+- **Dibujos por defecto:** si un producto no tiene imagen, se muestra un dibujo según su nombre (pan francés, viena, pan de hamburguesa, rosquilla, tostadas, prepizza o un pan genérico).
+- **Opiniones:** los clientes, mayoristas y minoristas, califican cada producto de 1 a 5 estrellas y pueden dejar un comentario. Cada cliente tiene una opinión por producto y la puede editar o borrar; el gerente puede borrar cualquiera.
+- **Importante:** las opiniones necesitan las reglas nuevas de `firestore.rules`. Cada vez que cambie ese archivo hay que volver a pegarlo en Firebase → Firestore Database → Reglas → Publicar.
+
 ## Pruebas
 
 ```bash

@@ -220,10 +220,15 @@ tr.detail td { background: var(--surface-2); font-size: 13px }
 .prod:nth-child(2) { animation-delay: .05s } .prod:nth-child(3) { animation-delay: .1s } .prod:nth-child(4) { animation-delay: .15s } .prod:nth-child(n+5) { animation-delay: .2s }
 .prod .ph { aspect-ratio: 4/3; max-width: 100%; position: relative; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 120%, var(--sol-soft), transparent 70%), var(--surface-2) }
 .prod .ph::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--tricolor) }
-.prod .ph::after { content: ""; position: absolute; width: 62%; aspect-ratio: 1; background: url(/marca/sol-192.png) center/contain no-repeat; opacity: .16; transition: transform 1.2s var(--ease), opacity .4s }
-.prod:hover .ph::after { transform: rotate(90deg) scale(1.05); opacity: .26 }
-.prod .ph span { position: relative; z-index: 1; font-family: var(--f-display); font-size: 44px; font-weight: 800; color: var(--verde); text-shadow: 0 2px 0 var(--surface); transition: transform .5s var(--ease) }
-.prod:hover .ph span { transform: scale(1.12) rotate(-4deg) }
+.prod .ph > img, .prod .ph > svg { position: relative; z-index: 1 }
+.prod-img { width: 100%; height: 100%; object-fit: cover; transition: transform .7s var(--ease) }
+.prod:hover .prod-img { transform: scale(1.06) }
+.pan-svg { width: 74%; height: auto; filter: drop-shadow(0 8px 10px rgba(80, 40, 0, .12)); animation: panFlota 5s ease-in-out infinite; transition: transform .5s var(--ease) }
+.prod:hover .pan-svg { transform: scale(1.08) rotate(-3deg) }
+.prod:nth-child(2n) .pan-svg { animation-delay: -1.6s } .prod:nth-child(3n) .pan-svg { animation-delay: -3.1s }
+.ph-tag { position: absolute; left: 10px; bottom: 10px; z-index: 2; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 99px; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(6px); border: 1px solid var(--line) }
+.ph-tag.rojo { left: auto; right: 10px; color: var(--rojo) }
+.ph-cant { position: absolute; right: 10px; top: 12px; z-index: 2; min-width: 30px; height: 30px; padding: 0 8px; border-radius: 99px; display: grid; place-items: center; background: var(--rojo); color: #fff; font-weight: 800; font-size: 14px; box-shadow: 0 6px 14px -4px rgba(205, 33, 29, .6); animation: badgePop .45s var(--ease) both }
 .prod .in { padding: 13px 15px 15px; display: flex; flex-direction: column; gap: 8px }
 .prod b { font-family: var(--f-display); font-weight: 700; font-size: 16px }
 .step { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; align-self: flex-start; background: var(--surface) }
@@ -231,6 +236,8 @@ tr.detail td { background: var(--surface-2); font-size: 13px }
 .step button:hover { background: var(--verde); color: #fff }
 .step input { width: 46px; text-align: center; border: 0; border-radius: 0; padding: 4px; background: var(--surface) }
 .step input:focus { box-shadow: none }
+.step input::-webkit-outer-spin-button, .step input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }
+.step input { -moz-appearance: textfield; appearance: textfield }
 .cartbar { position: sticky; bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px; box-shadow: var(--shadow); animation: popUp .5s var(--ease) both }
 .track { display: flex; gap: 5px; margin-top: 12px }
 .track div { flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: var(--muted); font-weight: 600 }
@@ -318,4 +325,72 @@ tr.detail td { background: var(--surface-2); font-size: 13px }
   .auth-feats, .auth-sun { display: none }
 }
 @media (max-width: 520px) { .fields2 { grid-template-columns: 1fr } .head h1 { font-size: 26px } .today { text-align: left } .auth-form form { padding: 20px } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important } }
+
+/* ---------- Imágenes, estrellas, opiniones y carrito ---------- */
+@keyframes panFlota { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+@keyframes bump { 0% { transform: scale(1) } 35% { transform: scale(1.35) rotate(-8deg) } 65% { transform: scale(.92) } 100% { transform: scale(1) } }
+@keyframes estrellaPop { 0% { transform: scale(1) } 50% { transform: scale(1.35) rotate(12deg) } 100% { transform: scale(1) } }
+@keyframes agregadoIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@keyframes shimmer { from { background-position: -200% 0 } to { background-position: 200% 0 } }
+
+.prod-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px }
+.prod .precio { color: var(--verde); font-weight: 700; font-size: 16px }
+.btn.agregar { padding: 7px 16px }
+.prod.agregado { box-shadow: 0 0 0 2px var(--verde), var(--shadow) }
+.ok-agregado { font-size: 12px; font-weight: 800; color: var(--ok); animation: agregadoIn .3s var(--ease) both }
+.vuelo { position: fixed; z-index: 50; pointer-events: none; overflow: hidden; border-radius: 16px; background: var(--surface-2); display: grid; place-items: center; box-shadow: var(--shadow) }
+.vuelo > img, .vuelo > svg { width: 100%; height: 100%; object-fit: cover }
+.carrito-ic { position: relative; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--verde-soft); color: var(--verde); animation: bump .5s var(--ease) }
+.carrito-ic svg { width: 22px; height: 22px }
+.carrito-ic i { position: absolute; top: -4px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: var(--rojo); color: #fff; font-style: normal; font-size: 11px; font-weight: 800; display: grid; place-items: center }
+
+.rating-btn { border: 0; background: none; padding: 0; text-align: left; cursor: pointer; align-self: flex-start; border-radius: 6px; transition: transform .2s var(--ease) }
+.rating-btn:hover { transform: translateX(3px) }
+.estrellas { position: relative; display: inline-flex; align-items: center; gap: 6px; line-height: 1 }
+.estrellas-fondo, .estrellas-llenas { display: inline-flex; gap: 2px }
+.estrellas svg { width: var(--tam); height: var(--tam); flex: none }
+.estrellas-fondo svg { fill: var(--line) }
+.estrellas-llenas { position: absolute; left: 0; top: 0; overflow: hidden; white-space: nowrap }
+.estrellas-llenas svg { fill: var(--sol); stroke: var(--sol-deep); stroke-width: .6 }
+.estrellas-n { font-size: 12px; color: var(--muted); font-weight: 600 }
+.elegir-estrellas { display: flex; align-items: center; gap: 12px }
+.elegir-estrellas [role=radiogroup] { display: flex; gap: 4px }
+.elegir-estrellas button { border: 0; background: none; padding: 2px; cursor: pointer }
+.elegir-estrellas svg { width: 32px; height: 32px; fill: var(--line); transition: fill .15s, transform .2s var(--ease) }
+.elegir-estrellas button.on svg { fill: var(--sol); stroke: var(--sol-deep); stroke-width: .6; animation: estrellaPop .35s var(--ease) both; animation-delay: calc(var(--i) * 40ms) }
+.elegir-estrellas button:hover svg { transform: scale(1.15) }
+
+.op-resumen { display: grid; grid-template-columns: 96px auto minmax(0, 1fr); gap: 18px; align-items: center; padding: 14px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line) }
+.op-img { width: 96px; height: 80px; border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: var(--surface) }
+.op-img img { width: 100%; height: 100%; object-fit: cover }
+.op-img .pan-svg { width: 90%; animation: none }
+.op-prom { display: flex; flex-direction: column; align-items: flex-start; gap: 4px }
+.op-prom > b { font-family: var(--f-display); font-size: 36px; line-height: 1 }
+.op-barras { display: flex; flex-direction: column; gap: 4px }
+.op-barras div { display: grid; grid-template-columns: 26px minmax(0, 1fr) 22px; gap: 8px; align-items: center }
+.op-barras i { height: 7px; border-radius: 7px; background: var(--line); overflow: hidden }
+.op-barras b { display: block; height: 100%; background: var(--sol-deep); border-radius: 7px; transform-origin: left; animation: growX .8s var(--ease) both }
+.op-form { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; border: 1px dashed var(--verde); background: color-mix(in srgb, var(--verde-soft) 45%, transparent); animation: popUp .4s var(--ease) both }
+.op-lista { display: flex; flex-direction: column; gap: 10px }
+.op-item { padding: 12px 0; border-bottom: 1px solid var(--line); animation: fadeInRow .4s var(--ease) both }
+.op-item:last-child { border-bottom: 0 }
+.op-item p { margin: 8px 0 0 44px; font-size: 14px }
+.op-avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--sol-soft); color: var(--sol-deep); font-weight: 800 }
+
+.dropzone { border: 2px dashed var(--line); border-radius: 16px; min-height: 230px; display: grid; place-items: center; text-align: center; cursor: pointer; overflow: hidden; transition: border-color .2s, background .2s, transform .2s var(--ease) }
+.dropzone:hover, .dropzone.over { border-color: var(--verde); background: var(--verde-soft); transform: scale(1.01) }
+.dropzone div { display: flex; flex-direction: column; gap: 4px; padding: 20px }
+.dropzone img { width: 100%; max-height: 320px; object-fit: contain; animation: popUp .4s var(--ease) both }
+.ia-marco { position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4/3; background: linear-gradient(110deg, var(--surface-2) 30%, var(--line) 50%, var(--surface-2) 70%); background-size: 200% 100%; animation: shimmer 1.6s linear infinite; display: grid; place-items: center }
+.ia-marco.dibujo { animation: none; background: var(--surface-2) }
+.ia-marco.dibujo .pan-svg { width: 60% }
+.ia-marco img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.04); transition: opacity .6s, transform .8s var(--ease) }
+.ia-marco img.lista { opacity: 1; transform: none }
+.ia-cargando { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 16px; color: var(--muted) }
+.ia-sol { width: 54px; height: 54px; background: url(/marca/sol-192.png) center/contain no-repeat; animation: spin 2.4s linear infinite }
+.mini-actual { width: 44px; height: 34px; border-radius: 8px; overflow: hidden; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--line) }
+.mini-actual img { width: 100%; height: 100%; object-fit: cover }
+.mini-actual .pan-svg { width: 100%; animation: none }
+@media (max-width: 560px) { .op-resumen { grid-template-columns: 80px 1fr } .op-barras { grid-column: 1 / -1 } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important } }

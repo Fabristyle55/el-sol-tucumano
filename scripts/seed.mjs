@@ -80,7 +80,7 @@ async function main() {
   INSUMOS.forEach(([id, nombre, unidad, stock, seguridad, pack, packLabel, proveedor], k) =>
     b.set(db.doc(`insumos/${id}`), { nombre, unidad, stock, seguridad, pack, packLabel, proveedor, orden: k + 1 }, { merge: true }));
   PRODUCTOS.forEach(([id, nombre, abrev, precio, precioMinorista, receta], k) =>
-    b.set(db.doc(`productos/${id}`), { nombre, abrev, precio, precioMinorista, receta, activo: true, orden: k + 1 }));
+    b.set(db.doc(`productos/${id}`), { nombre, abrev, precio, precioMinorista, receta, activo: true, orden: k + 1 }, { merge: true }));
   CLIENTES.forEach(([id, nombre, localidad, direccion, telefono]) =>
     b.set(db.doc(`clientes/${id}`), { nombre, tipo: 'mayorista', localidad, direccion, telefono }, { merge: true }));
   MINORISTAS.forEach(([id, nombre, localidad, direccion, telefono]) =>

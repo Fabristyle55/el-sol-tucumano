@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export const Pill = ({ e }) => <span className={`pill ${e[1]}`}>{e[0]}</span>;
 
@@ -8,13 +9,15 @@ export function Modal({ titulo, onClose, children, ancho }) {
     document.addEventListener('keydown', k);
     return () => document.removeEventListener('keydown', k);
   }, [onClose]);
-  return (
+  // Se dibuja directo en <body> para que cubra toda la pantalla aunque la página tenga animaciones.
+  return createPortal(
     <div className="modal-bg" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={titulo} style={ancho ? { width: `min(${ancho}px,100%)` } : undefined}>
         <h2>{titulo}</h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

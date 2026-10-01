@@ -14,11 +14,12 @@ import Recetas from './pages/Recetas';
 import Compras from './pages/Compras';
 import Usuarios from './pages/Usuarios';
 import Catalogo from './pages/Catalogo';
+import Productos from './pages/Productos';
 import MisPedidos from './pages/MisPedidos';
 
 const PAGINAS = {
   panel: Panel, pedidos: Pedidos, planificacion: Planificacion, produccion: Produccion, stock: Stock,
-  recetas: Recetas, compras: Compras, usuarios: Usuarios, catalogo: Catalogo, 'mis-pedidos': MisPedidos,
+  productos: Productos, recetas: Recetas, compras: Compras, usuarios: Usuarios, catalogo: Catalogo, 'mis-pedidos': MisPedidos,
 };
 
 export default function App() {
