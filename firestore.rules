@@ -11,7 +11,7 @@ service cloud.firestore {
     function conSesion() { return request.auth != null; }
     function perfil() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
     function rol() { return perfil().rol; }
-    function personal() { return conSesion() && rol() in ['gerente', 'mostrador', 'panadero', 'deposito']; }
+    function personal() { return conSesion() && rol() in ['gerente', 'mostrador', 'panadero', 'deposito', 'repartidor']; }
     function gerente() { return conSesion() && rol() == 'gerente'; }
 
     match /usuarios/{uid} {
@@ -79,6 +79,12 @@ service cloud.firestore {
       allow create: if gerente() && request.resource.data.uid == request.auth.uid
         && request.resource.data.texto is string && request.resource.data.texto.size() <= 300;
       allow update, delete: if false;
+    }
+    // Promociones: las de cantidad las ve cualquiera con sesión (el catálogo las muestra);
+    // los cupones, con su código, solo el gerente. Se crean desde el backend.
+    match /promos/{id} {
+      allow read: if gerente() || (conSesion() && resource.data.tipo == 'cantidad');
+      allow write: if false;
     }
     match /contadores/{id}  { allow read, write: if false; }
   }

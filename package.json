@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "env": "node scripts/crear-env.mjs",
     "seed": "node --env-file=.env scripts/seed.mjs",
-    "test": "node --test tests/negocio.test.js"
+    "test": "node --test tests/negocio.test.js",
+    "reglas": "node --env-file=.env scripts/publicar-reglas.mjs",
+    "datos-nuevos": "node --env-file=.env scripts/datos-octubre.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
