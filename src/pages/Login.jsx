@@ -27,7 +27,7 @@ export function AuthArte() {
         <h1>Del pedido al horno, <em>sin cuaderno</em> ni llamadas.</h1>
         <p style={{ marginTop: 16 }}>Pedidos, planificación de la producción, stock y compras de la panadería en un solo sistema.</p>
       </div>
-      <p className="small">Seminario Integrador · UTN FRT</p>
+      <p className="small"><a href="/presentacion/index.html">Conocé el proyecto</a> · Seminario Integrador · UTN FRT</p>
     </div>
   );
 }

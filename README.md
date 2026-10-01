@@ -28,6 +28,7 @@ app/
 ├── shared/negocio.js    Cálculo de insumos, reservas y alertas (lo usan frontend y backend)
 ├── scripts/seed.mjs     Carga de datos iniciales y usuarios de prueba
 ├── firestore.rules      Reglas de seguridad de la base de datos
+├── public/presentacion/ Sitio de presentación del proyecto
 └── tests/               Pruebas de la lógica de negocio
 ```
 
@@ -96,7 +97,7 @@ Las funciones del backend necesitan que Netlify construya el proyecto, así que 
 4. Antes de publicar, en **Site configuration → Environment variables** agregá `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` y `FIREBASE_PRIVATE_KEY` con los mismos valores del `.env`.
 5. **Deploy**. Cada vez que hagas `git push`, Netlify publica la versión nueva.
 
-La raíz del sitio abre directamente el ingreso al sistema.
+La raíz del sitio muestra la presentación del proyecto; "Ingresar al sistema" lleva al login.
 
 ## Cómo funciona el flujo
 

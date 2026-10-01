@@ -19,6 +19,12 @@
   port = 8888
   framework = "#custom"
 
+# La raíz muestra la presentación del proyecto.
+[[redirects]]
+  from = "/"
+  to = "/presentacion/index.html"
+  status = 302
+
 # El resto de las rutas las maneja React (aplicación de una sola página).
 [[redirects]]
   from = "/*"

@@ -36,6 +36,7 @@ export default function Layout() {
         <div className="side-foot">
           <div className="user-box"><b>{perfil.nombre}</b><span className="muted">{ROLES[perfil.rol].label}</span></div>
           <button className="linkbtn small" type="button" onClick={() => signOut(auth)}>Cerrar sesión</button>
+          <a className="linkbtn small" href="/presentacion/index.html" style={{ textDecoration: 'none' }}>Presentación del proyecto</a>
         </div>
       </aside>
       <main>
