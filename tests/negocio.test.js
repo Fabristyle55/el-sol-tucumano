@@ -121,3 +121,80 @@ test('fechas: día de la semana y diferencia en días', () => {
   assert.equal(diaSemana('2026-10-01'), 4); // jueves
   assert.equal(diasEntre('2026-09-28', '2026-10-01'), 3);
 });
+
+// ---------- Reparto, WhatsApp y promociones ----------
+import { aCobrarEnEntrega, cobrosDelDia, telefonoWa, linkWhatsApp, aplicarPromos, promoVigente, promosDe, codigoCupon, rangoDias } from '../shared/negocio.js';
+
+test('reparto: qué se cobra en la entrega', () => {
+  assert.equal(aCobrarEnEntrega({ pago: 'Efectivo', total: 1500.4 }), 1500);
+  assert.equal(aCobrarEnEntrega({ pago: 'Cuenta corriente', total: 1500 }), 0);
+  assert.equal(aCobrarEnEntrega({ pago: 'Transferencia', total: 1500 }), 0);
+});
+
+test('caja: suma reservas retiradas y lo cobrado por el repartidor', () => {
+  const pedidos = [
+    { estado: 'entregado', tipoCliente: 'minorista', pago: 'Efectivo', total: 1000 },
+    { estado: 'entregado', tipoCliente: 'mayorista', pago: 'Efectivo', total: 5000, cobrado: 4800, pagoCobrado: 'Efectivo' },
+    { estado: 'entregado', tipoCliente: 'mayorista', pago: 'Cuenta corriente', total: 9000, cobrado: 0 },
+    { estado: 'entregado', tipoCliente: 'mayorista', pago: 'Efectivo', total: 7000 },
+    { estado: 'listo', tipoCliente: 'minorista', pago: 'Efectivo', total: 300 },
+  ];
+  const c = cobrosDelDia(pedidos);
+  assert.deepEqual(c, [{ pago: 'Efectivo', total: 1000 }, { pago: 'Efectivo', total: 4800 }]);
+  assert.equal(resumenCaja([], c).efectivo, 5800);
+});
+
+test('WhatsApp: normaliza teléfonos de Tucumán', () => {
+  assert.equal(telefonoWa('381 15 4123456'), '5493814123456');
+  assert.equal(telefonoWa('0381-4123456'), '5493814123456');
+  assert.equal(telefonoWa('+54 9 381 412-3456'), '5493814123456');
+  assert.equal(telefonoWa('4123456'), '5493814123456');
+  assert.equal(telefonoWa('15 4123456'), '5493814123456');
+  assert.equal(telefonoWa('011 15 5555 1234'), '5491155551234');
+  assert.equal(telefonoWa(''), '');
+  assert.equal(telefonoWa('123'), '');
+  assert.ok(linkWhatsApp('3814123456', 'Hola, ¿todo bien?').startsWith('https://wa.me/5493814123456?text=Hola%2C%20'));
+  assert.equal(linkWhatsApp('', 'x'), '');
+});
+
+const PROMOS = [
+  { tipo: 'cantidad', productoId: 'pf', minimo: 50, pct: 10, para: 'mayorista' },
+  { tipo: 'cantidad', productoId: 'pf', minimo: 100, pct: 15, para: 'mayorista' },
+  { tipo: 'cantidad', productoId: null, minimo: 30, pct: 5, para: 'todos' },
+  { tipo: 'cantidad', productoId: 'pp', minimo: 10, pct: 20, para: 'mayorista', activo: false },
+];
+
+test('promos: se aplica la mejor promo por cantidad de cada línea', () => {
+  const r = aplicarPromos([{ productoId: 'pf', cantidad: 120, precio: 100 }, { productoId: 'pp', cantidad: 40, precio: 50 }, { productoId: 'pp', cantidad: 5, precio: 50 }], PROMOS, 'mayorista', null, '2026-10-01');
+  assert.equal(r.subtotal, 12000 + 2000 + 250);
+  assert.equal(r.lineas[0].descuento, 1800); // 15 % (la de 100+)
+  assert.equal(r.lineas[1].descuento, 100); // 5 % general (la de 20 % está pausada)
+  assert.equal(r.lineas[2].descuento, undefined);
+  assert.equal(r.total, 14250 - 1900);
+});
+
+test('promos: respetan el tipo de cliente y el vencimiento', () => {
+  const r = aplicarPromos([{ productoId: 'pf', cantidad: 60, precio: 100 }], PROMOS, 'minorista', null, '2026-10-01');
+  assert.equal(r.descuento, 300); // solo la general del 5 %
+  assert.equal(promoVigente({ vence: '2026-09-30' }, 'mayorista', '2026-10-01'), false);
+  assert.equal(promoVigente({ usosMax: 3, usos: 3 }, 'mayorista', '2026-10-01'), false);
+  assert.deepEqual(promosDe('pf', PROMOS, 'mayorista', '2026-10-01').map((p) => p.minimo), [30, 50, 100]);
+});
+
+test('cupón: se aplica después de las promos y respeta la compra mínima', () => {
+  const cupon = { codigo: 'SOL10', pct: 10, minimo: 5000 };
+  const ok = aplicarPromos([{ productoId: 'pf', cantidad: 60, precio: 100 }], PROMOS, 'mayorista', cupon, '2026-10-01');
+  assert.equal(ok.descLineas, 600);
+  assert.equal(ok.descCupon, 540); // 10 % de 5400
+  assert.equal(ok.total, 4860);
+  assert.equal(ok.cuponOk, true);
+  const no = aplicarPromos([{ productoId: 'x', cantidad: 2, precio: 100 }], [], 'mayorista', cupon, '2026-10-01');
+  assert.equal(no.cuponOk, false);
+  assert.match(no.motivoCupon, /desde/);
+  assert.equal(no.total, 200);
+  assert.equal(codigoCupon(' sol-10 '), 'SOL10');
+});
+
+test('rango de días incluye los extremos', () => {
+  assert.deepEqual(rangoDias('2026-09-29', '2026-10-02'), ['2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02']);
+});
