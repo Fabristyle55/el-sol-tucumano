@@ -4,7 +4,7 @@ import { useAuth } from '../auth';
 import { useData } from '../data';
 import { Modal, Stepper, useAccion } from '../ui';
 import { ENTREGA_LABEL, TIPO_LABEL, cant, hoy, manana, money } from '../util';
-import { FORMAS_PAGO, MODOS_ENTREGA, PAGOS_DESPACHO, estadoCuenta, idArticulo, precioPara, precioArticulo, r3 } from '../../shared/negocio.js';
+import { FORMAS_PAGO, MODOS_ENTREGA, PAGOS_DESPACHO, aplicarPromos, estadoCuenta, idArticulo, precioPara, precioArticulo, r3 } from '../../shared/negocio.js';
 
 /**
  * Formulario de pedido.
@@ -18,7 +18,10 @@ const itemsDe = (p) => Object.fromEntries((p?.items || []).map((i) => [p.tipoCli
 
 export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInicial = 'mayorista', inicial = null }) {
   const { perfil } = useAuth();
-  const { productos, productosPorId, clientes, articulos, miCliente } = useData();
+  const { productos, productosPorId, clientes, articulos, miCliente, promos } = useData();
+  const [cupon, setCupon] = useState(null);
+  const [codigo, setCodigo] = useState('');
+  const [validando, setValidando] = useState(false);
   const registrado = inicial?.clienteId && clientes.some((c) => c.id === inicial.clienteId);
   const [d, setD] = useState({
     clienteId: registrado ? inicial.clienteId : '_oc', ocasional: registrado ? '' : (inicial?.clienteNombre || ''), telefonoOcasional: inicial?.telefono || '', direccionOcasional: inicial?.direccion || '', tipoOcasional: tipoInicial === 'minorista' ? 'minorista' : 'mayorista',
@@ -37,7 +40,14 @@ export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInic
   const precio = (id) => (minorista ? precioArticulo(porArt[id], productosPorId) : precioPara(productos.find((p) => p.id === id), tipo));
   const nombre = (id) => (minorista ? porArt[id]?.nombre : productos.find((p) => p.id === id)?.nombre);
   const lineas = Object.entries(d.items).filter(([id, q]) => q > 0 && (minorista ? porArt[id] : true));
-  const total = Math.round(lineas.reduce((a, [id, q]) => a + q * precio(id), 0));
+  const calc = aplicarPromos(lineas.map(([id, q]) => ({ id, productoId: minorista ? porArt[id]?.productoId || null : id, cantidad: q, precio: precio(id) })), promos.filter((p) => p.tipo === 'cantidad'), tipo, cupon, hoy());
+  const total = calc.total;
+  const descLinea = Object.fromEntries(calc.lineas.filter((l) => l.descuento).map((l) => [l.id, l]));
+  const validarCupon = async () => {
+    setValidando(true); setError('');
+    try { setCupon(await api('promo', { accion: 'validar', codigo, tipoCliente: tipo })); } catch (e) { setCupon(null); setError(e.message); }
+    setValidando(false);
+  };
   const mayoristas = clientes.filter((c) => (c.tipo || 'mayorista') === 'mayorista');
   const minoristas = clientes.filter((c) => c.tipo === 'minorista');
   const minFecha = minorista ? hoy() : manana();
@@ -60,12 +70,13 @@ export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInic
   async function guardar() {
     setError('');
     if (!lineas.length) { setError('Agregá al menos un producto.'); return; }
+    if (cupon && calc.motivoCupon) { setError(calc.motivoCupon); return; }
     if (modo === 'mostrador' && d.clienteId === '_oc' && !d.ocasional.trim()) { setError('Escribí a nombre de quién es el pedido.'); return; }
     if (modo === 'mostrador' && d.clienteId === '_oc' && d.modoEntrega === 'envio' && !d.direccionOcasional.trim()) { setError('Escribí la dirección de envío o elegí "Retira en el local".'); return; }
     if (!d.entrega || d.entrega < minFecha) { setError(minorista ? 'La fecha de retiro no puede ser anterior a hoy.' : 'La entrega tiene que ser desde mañana.'); return; }
     const r = await correr(() => api('crear-pedido', {
       items: lineas.map(([id, cantidad]) => (minorista ? { articuloId: id, cantidad } : { productoId: id, cantidad })),
-      entrega: d.entrega, pago: pagoSel, notas: d.notas, modoEntrega: d.modoEntrega,
+      entrega: d.entrega, pago: pagoSel, notas: d.notas, modoEntrega: d.modoEntrega, cupon: cupon?.codigo || '',
       ...(modo === 'mostrador' ? {
         clienteId: d.clienteId === '_oc' ? null : d.clienteId, ocasional: d.ocasional, confirmar: d.confirmar,
         tipoOcasional: d.tipoOcasional, telefonoOcasional: d.telefonoOcasional, direccionOcasional: d.direccionOcasional,
@@ -122,9 +133,29 @@ export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInic
       )}
       {modo === 'web' && (
         <div className="lines">
-          {lineas.map(([id, q]) => <div className="line" key={id}><span>{nombre(id)}</span><span className="num">{cant(q, porArt[id]?.unidad)} × {money(precio(id))}</span></div>)}
+          {lineas.map(([id, q]) => <div className="line" key={id}><span>{nombre(id)}{descLinea[id] && <span className="promo-tag">{descLinea[id].promo}</span>}</span><span className="num">{cant(q, porArt[id]?.unidad)} × {money(precio(id))}</span></div>)}
         </div>
       )}
+      {modo === 'mostrador' && Object.keys(descLinea).length > 0 && <div className="note ok small">Promos aplicadas: {Object.values(descLinea).map((l) => `${nombre(l.id)} (${l.promo})`).join(' · ')}</div>}
+      {calc.descuento > 0 && (
+        <div className="lines">
+          <div className="line muted"><span>Subtotal</span><span className="num">{money(calc.subtotal)}</span></div>
+          {calc.descLineas > 0 && <div className="line ok-txt"><span>Promociones por cantidad</span><span className="num">−{money(calc.descLineas)}</span></div>}
+          {calc.descCupon > 0 && <div className="line ok-txt"><span>Cupón {cupon.codigo} ({cupon.pct}%)</span><span className="num">−{money(calc.descCupon)}</span></div>}
+        </div>
+      )}
+      <div className="field">
+        <label htmlFor="d-cupon">Cupón de descuento <span className="muted small">(opcional)</span></label>
+        {cupon ? (
+          <div className="row"><span className="chip">{cupon.codigo} · {cupon.pct}%</span>{calc.motivoCupon && <span className="small" style={{ color: 'var(--bad)' }}>{calc.motivoCupon}</span>}<button type="button" className="linkbtn small" onClick={() => { setCupon(null); setCodigo(''); }}>Quitar</button></div>
+        ) : (
+          <div className="row" style={{ flexWrap: 'nowrap' }}>
+            <input id="d-cupon" type="text" value={codigo} onChange={(e) => setCodigo(e.target.value.toUpperCase())} placeholder="Ej.: SOL10" autoCapitalize="characters" style={{ flex: 1 }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && codigo.trim()) { e.preventDefault(); validarCupon(); } }} />
+            <button type="button" className="btn" disabled={!codigo.trim() || validando} onClick={validarCupon}>{validando ? 'Revisando…' : 'Aplicar'}</button>
+          </div>
+        )}
+      </div>
       <div className="total"><span>Total <span className="muted small" style={{ fontFamily: 'var(--f-body)', fontWeight: 400 }}>precio {TIPO_LABEL[tipo].toLowerCase()}</span></span><span className="num">{money(total)}</span></div>
       <div className="field"><span style={{ fontSize: 13, fontWeight: 600 }}>Entrega</span>
         <div className="tabs" role="group" aria-label="Forma de entrega">{MODOS_ENTREGA.map((m) => <button type="button" key={m} aria-pressed={d.modoEntrega === m} onClick={() => set('modoEntrega', m)}>{ENTREGA_LABEL[m]}</button>)}</div>
