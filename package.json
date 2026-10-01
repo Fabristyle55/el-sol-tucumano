@@ -2,7 +2,7 @@
   "name": "el-sol-tucumano",
   "private": true,
   "version": "1.0.0",
-  "description": "Sistema de pedidos, planificación de producción (MRP básico), stock y compras para la panadería El Sol Tucumano",
+  "description": "Sistema de pedidos, planificación de producción (MRP básico), stock y compras para la panadería El Sol Siciliano",
   "type": "module",
   "scripts": {
     "dev": "netlify dev",

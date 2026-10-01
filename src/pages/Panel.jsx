@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useData } from '../data';
 import { cuando, dRel, dShort, fq, hoy, manana, money, sumarDias } from '../util';
 import { proyeccion } from '../../shared/negocio.js';
+import { Contador } from '../ui';
 
 const COL = { warn: 'var(--warn)', info: 'var(--info)', bad: 'var(--bad)', ok: 'var(--ok)' };
 
@@ -28,10 +29,10 @@ export default function Panel() {
   return (
     <>
       <div className="kpis">
-        <Link className="kpi" to="/pedidos"><span className="t">Pedidos para mañana</span><span className="v">{pm.length}</span><span className="s">{money(pm.reduce((a, o) => a + o.total, 0))} · {pm.filter((o) => o.tipoCliente === 'minorista').length} minoristas</span></Link>
-        <Link className="kpi" to="/pedidos?f=pendiente"><span className="t">Por confirmar</span><span className="v">{pend.length}</span><span className="s">{pend.filter((o) => o.canal === 'web').length} web · {pend.filter((o) => o.canal === 'mostrador').length} mostrador</span></Link>
-        <Link className="kpi" to="/produccion"><span className="t">Órdenes de producción abiertas</span><span className="v">{ops.length}</span><span className="s">{ops.filter((o) => o.estado === 'en_curso').length} en curso</span></Link>
-        <Link className={`kpi ${al.length ? 'alert' : ''}`} to="/compras"><span className="t">Insumos en alerta</span><span className="v">{al.length}</span><span className="s">{enCamino} compras en camino</span></Link>
+        <Link className="kpi" to="/pedidos"><span className="t">Pedidos para mañana</span><span className="v"><Contador valor={pm.length} /></span><span className="s"><Contador valor={pm.reduce((a, o) => a + o.total, 0)} formato={money} /> · {pm.filter((o) => o.tipoCliente === 'minorista').length} minoristas</span></Link>
+        <Link className="kpi" to="/pedidos?f=pendiente"><span className="t">Por confirmar</span><span className="v"><Contador valor={pend.length} /></span><span className="s">{pend.filter((o) => o.canal === 'web').length} web · {pend.filter((o) => o.canal === 'mostrador').length} mostrador</span></Link>
+        <Link className="kpi" to="/produccion"><span className="t">Órdenes de producción abiertas</span><span className="v"><Contador valor={ops.length} /></span><span className="s">{ops.filter((o) => o.estado === 'en_curso').length} en curso</span></Link>
+        <Link className={`kpi ${al.length ? 'alert' : ''}`} to="/compras"><span className="t">Insumos en alerta</span><span className="v"><Contador valor={al.length} /></span><span className="s">{enCamino} compras en camino</span></Link>
       </div>
       <div className="grid32">
         <section className="card">
@@ -45,7 +46,7 @@ export default function Panel() {
           ) : <div className="empty">Todo en orden por ahora.</div>}
         </section>
         <section className="card">
-          <div className="card-h"><h2>Pedidos por día de entrega</h2><div className="legend"><span style={{ '--c': 'var(--brand)' }}>Web</span><span style={{ '--c': 'var(--gold)' }}>Mostrador</span></div></div>
+          <div className="card-h"><h2>Pedidos por día de entrega</h2><div className="legend"><span style={{ '--c': 'var(--verde)' }}>Web</span><span style={{ '--c': 'var(--rojo)' }}>Mostrador</span></div></div>
           <Grafico pedidos={d.pedidos} />
         </section>
       </div>
@@ -85,8 +86,8 @@ function Grafico({ pedidos }) {
             const lbl = x.d === T ? 'hoy' : x.d === M ? 'mañ.' : dShort(x.d).split(' ')[0].replace(',', '');
             return (
               <g key={x.d} opacity={op}>
-                <rect x={cx} y={y(x.w)} width={w} height={y(0) - y(x.w)} fill="var(--brand)" rx="2" />
-                <rect x={cx} y={y(x.w + x.m)} width={w} height={y(x.w) - y(x.w + x.m)} fill="var(--gold)" rx="2" />
+                <rect className="bar" style={{ animationDelay: `${i * 0.06}s` }} x={cx} y={y(x.w)} width={w} height={y(0) - y(x.w)} fill="var(--verde)" rx="3" />
+                <rect className="bar" style={{ animationDelay: `${i * 0.06 + 0.15}s` }} x={cx} y={y(x.w + x.m)} width={w} height={y(x.w) - y(x.w + x.m)} fill="var(--rojo)" rx="3" />
                 <text x={cx + w / 2} y={y(x.w + x.m) - 5} textAnchor="middle" style={{ fill: 'var(--ink)' }}>{x.w + x.m}</text>
                 <text x={cx + w / 2} y={H - 8} textAnchor="middle" style={x.d === T ? { fill: 'var(--ink)', fontWeight: 600 } : undefined}>{lbl}</text>
               </g>
@@ -108,7 +109,7 @@ function Top({ pedidos }) {
     <div className="list">{arr.map(([pid, q]) => (
       <div className="li" key={pid} style={{ alignItems: 'center' }}><div className="body">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{nom[pid]}</span><span className="num">{q}</span></div>
-        <div className="meter" style={{ width: '100%', marginTop: 5 }}><i style={{ width: `${(q / mx) * 100}%`, background: 'var(--brand)' }} /></div>
+        <div className="meter" style={{ width: '100%', marginTop: 5 }}><i style={{ width: `${(q / mx) * 100}%`, background: 'var(--verde)' }} /></div>
       </div></div>
     ))}</div>
   );

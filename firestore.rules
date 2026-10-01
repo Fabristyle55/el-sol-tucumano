@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Reglas de seguridad de Firestore para El Sol Tucumano.
+// Reglas de seguridad de Firestore para El Sol Siciliano.
 // - Leer: cada rol ve solo lo que necesita.
 // - Escribir: casi todo pasa por el backend (Netlify Functions con Firebase Admin),
 //   que no está sujeto a estas reglas. Desde el navegador solo el gerente puede

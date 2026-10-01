@@ -1,6 +1,6 @@
-# El Sol Tucumano · Sistema de gestión
+# El Sol Siciliano · Sistema de gestión
 
-Sistema de pedidos, planificación de la producción (MRP básico), stock y compras para la panadería **El Sol Tucumano**.
+Sistema de pedidos, planificación de la producción (MRP básico), stock y compras para la panadería **El Sol Siciliano** (Tucumán).
 Proyecto del Seminario Integrador · UTN Facultad Regional Tucumán · 2026.
 
 ## Tecnologías

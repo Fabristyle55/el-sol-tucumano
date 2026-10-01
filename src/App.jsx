@@ -23,7 +23,7 @@ const PAGINAS = {
 
 export default function App() {
   const { cargando, user, perfil } = useAuth();
-  if (cargando) return <div className="spinner">Cargando…</div>;
+  if (cargando) return <div className="spinner"><img src="/marca/sol-192.png" alt="" /><span>Conectando con el sistema<span className="loading-dots"><i /><i /><i /></span></span></div>;
 
   // Sin sesión: solo login y registro de clientes.
   if (!user) {

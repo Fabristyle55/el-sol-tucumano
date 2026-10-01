@@ -5,6 +5,9 @@ import App from './App';
 import { AuthProvider } from './auth';
 import { ToastProvider } from './ui';
 import './styles.css';
+import { iniciarEfectos } from './efectos';
+
+iniciarEfectos();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

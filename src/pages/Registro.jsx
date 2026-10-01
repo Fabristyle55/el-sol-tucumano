@@ -5,6 +5,7 @@ import { auth } from '../firebase';
 import { api } from '../api';
 import { LOCALIDADES } from '../util';
 import { AuthArte, MENSAJES_AUTH } from './Login';
+import { TemaToggle } from '../ui';
 
 /** Alta de un cliente (mayorista o minorista). Con "completar" el usuario ya existe y solo falta el comercio. */
 export default function Registro({ completar = false }) {
@@ -37,6 +38,7 @@ export default function Registro({ completar = false }) {
     <div className="auth">
       <AuthArte />
       <div className="auth-form">
+        <div className="auth-top"><TemaToggle /></div>
         <form onSubmit={enviar}>
           <h2>{completar ? 'Completá tus datos de cliente' : 'Crear cuenta de cliente'}</h2>
           {completar && <p className="small muted">Tu usuario no tiene un perfil asignado. Si sos parte del personal, pedile al gerente que te dé de alta.</p>}
