@@ -6,480 +6,150 @@
 <title>El Sol Tucumano</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: sitio de presentación de una sola columna con secciones ancladas; el héroe muestra
-   un "programa de producción" impreso como objeto característico de la panadería. */
+/* Presentación breve del Seminario Integrador: una columna, el mapa conceptual como diagrama central. */
 :root{
-  --bg:#F6F1EB; --surface:#FFFFFF; --surface-2:#FBF8F4; --ink:#2B1B1D; --muted:#7B6B67; --line:#E6DBD1;
-  --brand:#8E1F2F; --brand-deep:#5E1420; --brand-soft:#F3E3E4; --brand-ink:#FFFFFF; --gold:#B8861F; --gold-soft:#F6EBD3;
-  --ok:#2E7549; --ok-soft:#E3F1E7; --warn:#A8670F; --warn-soft:#FAEED9; --bad:#B42318; --bad-soft:#FBE5E2;
-  --paper:#FFFDF8;
+  --bg:#F6F1EB; --surface:#FFFFFF; --ink:#2B1B1D; --muted:#7B6B67; --line:#E6DBD1;
+  --brand:#8E1F2F; --brand-soft:#F3E3E4; --brand-ink:#FFFFFF; --gold:#B8861F; --gold-soft:#F6EBD3;
   --f-display:"Fraunces",Georgia,"Times New Roman",serif;
   --f-body:"Work Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-  --w:1160px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#181213; --surface:#221A1B; --surface-2:#1D1617; --ink:#F2E8E3; --muted:#B19F99; --line:#3A2D2E;
-  --brand:#D45A6E; --brand-deep:#2A1418; --brand-soft:#3A2227; --brand-ink:#1A1012; --gold:#E0B04E; --gold-soft:#3A2F1A;
-  --ok:#62BD86; --ok-soft:#1E3226; --warn:#E3A948; --warn-soft:#3A2D18; --bad:#F27466; --bad-soft:#3D201D; --paper:#2A2122; color-scheme:dark}}
+  --bg:#181213; --surface:#221A1B; --ink:#F2E8E3; --muted:#B19F99; --line:#3A2D2E;
+  --brand:#D45A6E; --brand-soft:#3A2227; --brand-ink:#1A1012; --gold:#E0B04E; --gold-soft:#3A2F1A; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#181213; --surface:#221A1B; --surface-2:#1D1617; --ink:#F2E8E3; --muted:#B19F99; --line:#3A2D2E;
-  --brand:#D45A6E; --brand-deep:#2A1418; --brand-soft:#3A2227; --brand-ink:#1A1012; --gold:#E0B04E; --gold-soft:#3A2F1A;
-  --ok:#62BD86; --ok-soft:#1E3226; --warn:#E3A948; --warn-soft:#3A2D18; --bad:#F27466; --bad-soft:#3D201D; --paper:#2A2122; color-scheme:dark}
-
+  --bg:#181213; --surface:#221A1B; --ink:#F2E8E3; --muted:#B19F99; --line:#3A2D2E;
+  --brand:#D45A6E; --brand-soft:#3A2227; --brand-ink:#1A1012; --gold:#E0B04E; --gold-soft:#3A2F1A; color-scheme:dark}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:80px}
-body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body)}
-img{max-width:100%;display:block}
-a{color:inherit}
-h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance;letter-spacing:-.015em;line-height:1.1}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body)}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;line-height:1.15;text-wrap:balance}
 p{margin:0}
-.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+a{color:inherit}
+.wrap{max-width:1040px;margin-inline:auto;padding-inline:clamp(16px,4vw,32px)}
+.btn{display:inline-flex;align-items:center;border-radius:99px;padding:11px 22px;font-weight:600;text-decoration:none;border:1px solid var(--brand);background:var(--brand);color:var(--brand-ink)}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink);filter:none}
 :focus-visible{outline:2px solid var(--brand);outline-offset:3px}
-.wrap{max-width:var(--w);margin-inline:auto;padding-inline:clamp(16px,4vw,32px)}
+
+header{border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:600;font-size:18px}
+.sun{width:30px;height:30px;border-radius:50%;flex:none;background:radial-gradient(circle,var(--gold) 0 38%,transparent 39%),repeating-conic-gradient(var(--gold) 0 8deg,transparent 8deg 22.5deg);position:relative}
+.sun::after{content:"";position:absolute;inset:7px;border-radius:50%;border:2px solid var(--brand)}
+header .btn{padding:8px 16px;font-size:14px}
+
+.hero{padding-block:72px 56px;text-align:center}
 .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--brand)}
-.lead{font-size:18px;color:var(--muted);max-width:62ch}
-.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:11px 20px;font-weight:600;text-decoration:none;font-size:15px;cursor:pointer;color:var(--ink)}
-.btn:hover{border-color:var(--ink)}
-.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
-.btn.primary:hover{filter:brightness(1.08)}
+.hero h1{font-size:clamp(34px,5vw,54px);margin:14px auto 0;max-width:18ch}
+.hero h1 em{font-style:italic;font-weight:500;color:var(--brand)}
+.hero p{color:var(--muted);font-size:18px;max-width:58ch;margin:18px auto 0}
+.hero .ctas{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:28px}
 
-/* header */
-header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.top .wrap{display:flex;align-items:center;gap:20px;height:64px}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none}
-.sun{width:32px;height:32px;border-radius:50%;flex:none;background:radial-gradient(circle,var(--gold) 0 38%,transparent 39%),repeating-conic-gradient(var(--gold) 0 8deg,transparent 8deg 22.5deg);position:relative}
-.sun::after{content:"";position:absolute;inset:8px;border-radius:50%;border:2px solid var(--brand)}
-.logo b{font-family:var(--f-display);font-size:18px}
-nav.links{display:flex;gap:2px;margin-left:auto;overflow-x:auto}
-nav.links a{text-decoration:none;font-size:14px;font-weight:500;color:var(--muted);padding:6px 10px;border-radius:8px;white-space:nowrap}
-nav.links a:hover{color:var(--ink);background:var(--surface)}
-.top .btn{padding:8px 16px;font-size:14px;flex:none}
+section.sec{padding-block:56px;border-top:1px solid var(--line)}
+.sec h2{font-size:clamp(26px,3vw,34px);margin-bottom:8px}
+.sec .sub{color:var(--muted);max-width:60ch;margin-bottom:28px}
 
-/* hero */
-.hero{padding-block:64px 72px}
-.hero .wrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:56px;align-items:center}
-.hero h1{font-size:clamp(40px,5.6vw,68px);font-weight:600;margin-top:14px}
-.hero h1 em{font-style:italic;color:var(--brand);font-weight:500}
-.hero .lead{margin-top:20px}
-.hero .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
-.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:40px;border-top:1px solid var(--line);padding-top:22px}
-.facts b{display:block;font-family:var(--f-display);font-size:34px;font-weight:600;line-height:1}
-.facts span{font-size:13px;color:var(--muted)}
+/* Diagrama del mapa conceptual */
+.map{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:18px;align-items:center}
+.col{display:flex;flex-direction:column;gap:18px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.box b{display:block;font-family:var(--f-display);font-size:16px}
+.box span{font-size:14px;color:var(--muted)}
+.box .who{display:inline-block;margin-top:8px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--gold-soft);color:var(--gold)}
+.core{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);text-align:center;padding:24px 20px}
+.core b{font-size:20px}
+.core span{color:inherit;opacity:.85}
+.arrow{font-size:13px;color:var(--muted);text-align:center}
+.tags{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:24px}
+.tags span{font-size:13px;padding:5px 12px;border-radius:99px;background:var(--brand-soft);color:var(--brand);font-weight:500}
 
-.ticket{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:24px 24px 18px;box-shadow:0 1px 0 var(--line),0 18px 40px -18px rgba(80,30,30,.35);transform:rotate(1.2deg);position:relative;font-family:var(--f-mono);font-size:13px}
-.ticket::before,.ticket::after{content:"";position:absolute;left:0;right:0;height:10px;background:radial-gradient(circle at 6px 0,transparent 5px,var(--paper) 5.5px) repeat-x;background-size:12px 10px}
-.ticket::before{top:-9px;transform:rotate(180deg)}
-.ticket::after{bottom:-9px}
-.ticket h3{font-family:var(--f-display);font-size:22px;margin-bottom:2px}
-.ticket .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
-.trow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
-.trow b{font-weight:500}
-.ticket .foot{display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:var(--muted)}
-.stamp{position:absolute;right:18px;top:20px;border:2px solid var(--brand);color:var(--brand);font-family:var(--f-body);font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:4px;transform:rotate(-8deg);opacity:.85}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;counter-reset:s}
+.steps li{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;counter-increment:s}
+.steps li::before{content:counter(s);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-weight:600;font-size:14px;margin-bottom:10px}
+.steps b{display:block;margin-bottom:4px}
+.steps span{font-size:14px;color:var(--muted)}
 
-/* sections */
-section.sec{padding-block:80px;border-top:1px solid var(--line)}
-.sec-h{display:flex;flex-direction:column;gap:12px;margin-bottom:40px}
-.sec-h h2{font-size:clamp(30px,3.6vw,44px)}
-.alt{background:var(--surface-2)}
-.cols2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px}
-.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;min-width:0}
-.card h3{font-size:20px;margin-bottom:8px}
-.card p{color:var(--muted);font-size:15px}
-.prose p+p{margin-top:14px}
-.prose p{color:var(--muted)}
-.prose strong{color:var(--ink)}
+.tech{display:flex;flex-wrap:wrap;gap:10px}
+.tech span{padding:6px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:14px}
 
-.areas{display:flex;flex-direction:column;gap:10px}
-.area{display:flex;gap:16px;align-items:flex-start;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
-.area .k{font-family:var(--f-display);font-size:15px;font-weight:600;color:var(--brand);min-width:110px}
-.area p{color:var(--muted);font-size:15px}
+footer{border-top:1px solid var(--line);padding-block:32px;font-size:14px;color:var(--muted)}
+footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+footer b{color:var(--ink)}
 
-.pmap{display:grid;grid-template-columns:minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
-.pmap .r{display:grid;grid-template-columns:150px minmax(0,1fr);border-bottom:1px solid var(--line)}
-.pmap .r:last-child{border-bottom:0}
-.pmap .r>div:first-child{padding:16px 18px;font-weight:600;background:var(--surface-2);border-right:1px solid var(--line)}
-.pmap .r>div:last-child{padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px}
-.tag{font-size:13px;padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:var(--surface)}
-.tag.hl{background:var(--brand-soft);border-color:transparent;color:var(--brand);font-weight:600}
-
-/* etapas */
-.stages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
-.stage{border-radius:16px;padding:26px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:14px}
-.stage.now{background:var(--brand-deep);border-color:var(--brand-deep);color:#F7EDE9}
-.stage.now p,.stage.now li{color:#E3CFCB}
-.stage .lbl{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--muted)}
-.stage.now .lbl{color:#E8C27A}
-.stage h3{font-size:24px}
-.stage ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
-.shots{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;align-items:start;margin-top:4px}
-.shots img{border-radius:10px;border:1px solid var(--line)}
-.fig{margin-top:28px}
-.fig .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
-.fig .scroll img{min-width:900px;width:100%}
-.fig figcaption{font-size:13px;color:var(--muted);margin-top:8px}
-
-/* flujo */
-.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;counter-reset:s}
-.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;counter-increment:s}
-.step::before{content:counter(s,decimal-leading-zero);font-family:var(--f-mono);font-size:13px;color:var(--brand);font-weight:500;display:block;margin-bottom:10px}
-.step h3{font-size:18px;margin-bottom:6px}
-.step p{color:var(--muted);font-size:14px}
-.step .who{display:inline-block;margin-top:12px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--gold-soft);color:var(--gold)}
-.step .who.auto{background:var(--brand-soft);color:var(--brand)}
-
-/* módulos */
-.mods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.mod{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px}
-.mod h3{font-size:18px}
-.mod p{color:var(--muted);font-size:14px;flex:1}
-.mod .roles{display:flex;gap:6px;flex-wrap:wrap}
-.mod .roles span{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
-
-/* simulador */
-.sim{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:20px;align-items:start}
-.sim .card{padding:20px}
-.prow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
-.prow:last-child{border-bottom:0}
-.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:99px;overflow:hidden;flex:none}
-.stepper button{border:0;background:var(--surface-2);width:32px;height:32px;font-weight:600;font-size:16px;cursor:pointer;color:var(--ink)}
-.stepper input{width:50px;text-align:center;border:0;padding:4px;background:var(--surface);color:var(--ink);font:inherit;font-family:var(--f-mono)}
-.irow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
-.irow:last-child{border-bottom:0}
-.bar{height:8px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);position:relative;overflow:hidden}
-.bar i{position:absolute;inset:0 auto 0 0;border-radius:8px}
-.bar s{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);opacity:.5}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap}
-.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
-.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:12px}
-
-/* tabla problema-solución */
-.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
-table{width:100%;border-collapse:collapse;min-width:640px}
-th{text-align:left;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface-2)}
-td{padding:14px 18px;border-bottom:1px solid var(--line);vertical-align:top;font-size:15px}
-tr:last-child td{border-bottom:0}
-td:first-child{color:var(--muted)}
-td:nth-child(2){font-weight:500}
-
-/* roles */
-.roles-g{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
-.role{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
-.role h3{font-size:17px;margin-bottom:6px}
-.role p{font-size:14px;color:var(--muted)}
-
-/* arquitectura */
-.arch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:stretch}
-.layer{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:10px}
-.layer .lbl{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--brand)}
-.layer h3{font-size:19px}
-.layer p{font-size:14px;color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chips span{font-family:var(--f-mono);font-size:12px;padding:3px 9px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line)}
-.integr{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:16px 20px;border:1px dashed var(--line);border-radius:14px;font-size:14px;color:var(--muted)}
-.integr b{color:var(--ink)}
-
-/* cta */
-.cta{background:var(--brand-deep);color:#F7EDE9;border-radius:20px;padding:clamp(28px,5vw,56px);display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:32px;align-items:center}
-.cta h2{font-size:clamp(28px,3.4vw,40px)}
-.cta p{color:#E3CFCB;margin-top:12px}
-.cta ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.cta li{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.06);font-size:14px}
-.cta li span:last-child{color:#E8C27A}
-.cta .btn.primary{background:#E8C27A;border-color:#E8C27A;color:#2A1418;margin-top:22px}
-
-footer{padding-block:48px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
-footer .wrap{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:28px}
-footer h4{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);margin:0 0 10px}
-footer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
-
-@media (max-width:1000px){
-  .hero .wrap,.cols2,.sim,.cta,.stages{grid-template-columns:minmax(0,1fr)}
-  .flow,.mods{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .roles-g{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .cols3,.arch{grid-template-columns:minmax(0,1fr)}
-  footer .wrap{grid-template-columns:minmax(0,1fr)}
-  .ticket{max-width:440px}
+@media (max-width:820px){
+  .map{grid-template-columns:minmax(0,1fr)}
+  .steps{grid-template-columns:minmax(0,1fr)}
 }
-@media (max-width:760px){nav.links{display:none}.top .btn{margin-left:auto}}
-@media (max-width:560px){
-  .flow,.mods,.roles-g{grid-template-columns:minmax(0,1fr)}
-  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .pmap .r{grid-template-columns:minmax(0,1fr)}
-  .pmap .r>div:first-child{border-right:0;border-bottom:1px solid var(--line);padding:10px 16px}
-  .irow{grid-template-columns:minmax(0,1fr) auto}.irow .bar{grid-column:1/-1;order:3}
-  .shots{grid-template-columns:minmax(0,1fr)}
-  section.sec{padding-block:56px}
-}
-@media (max-width:440px){.top .wrap{gap:10px}.logo b{font-size:15px}.top .btn{padding:7px 12px;font-size:13px}.sun{width:26px;height:26px}.sun::after{inset:6px}}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media (max-width:420px){header .logo span{font-size:15px}}
 </style>
-
-<header class="top">
+</head>
+<body>
+<header>
   <div class="wrap">
-    <a class="logo" href="#inicio"><span class="sun" aria-hidden="true"></span><b>El Sol Tucumano</b></a>
-    <nav class="links" aria-label="Secciones">
-      <a href="#empresa">La empresa</a>
-      <a href="#proyecto">El proyecto</a>
-      <a href="#flujo">Cómo funciona</a>
-      <a href="#modulos">Módulos</a>
-      <a href="#simulador">Simulador</a>
-      <a href="#tecnologia">Tecnología</a>
-    </nav>
-    <a class="btn primary" href="/login">Ingresar al sistema</a>
+    <div class="logo"><span class="sun" aria-hidden="true"></span><span>El Sol Tucumano</span></div>
+    <a class="btn" href="/login">Ingresar al sistema</a>
   </div>
 </header>
 
-<main id="inicio">
+<main>
   <section class="hero">
     <div class="wrap">
-      <div>
-        <span class="eyebrow">Panificados mayoristas · Tucumán</span>
-        <h1>Del pedido al horno, <em>sin cuaderno</em> ni llamadas.</h1>
-        <p class="lead">Un sistema de gestión para una panadería familiar. Recibe los pedidos de la web y del mostrador, calcula con las recetas cuánta harina, levadura y manteca hacen falta, arma el programa de producción del día y avisa antes de que falte un insumo.</p>
-        <div class="ctas"><a class="btn primary" href="/login">Ingresar al sistema</a><a class="btn" href="#flujo">Ver cómo funciona</a></div>
-        <div class="facts">
-          <div><b class="num">3</b><span>áreas: administración, producción y reparto</span></div>
-          <div><b class="num">7</b><span>módulos integrados</span></div>
-          <div><b class="num">5</b><span>perfiles de usuario</span></div>
-          <div><b class="num">2</b><span>canales de pedido: web y mostrador</span></div>
+      <span class="eyebrow">Seminario Integrador · UTN FRT</span>
+      <h1>Planificación de producción y stock <em>para una panadería</em></h1>
+      <p>Un sistema web que toma los pedidos de los clientes, calcula con las recetas cuántos insumos hacen falta, arma las órdenes de producción para los panaderos y avisa al gerente qué hay que comprar.</p>
+      <div class="ctas"><a class="btn" href="/login">Ingresar al sistema</a><a class="btn ghost" href="#funciona">Cómo funciona</a></div>
+    </div>
+  </section>
+
+  <section class="sec" id="funciona">
+    <div class="wrap">
+      <h2>Modelo del sistema</h2>
+      <p class="sub">Un MRP básico: todo parte de los pedidos confirmados y de las recetas de cada producto.</p>
+      <div class="map">
+        <div class="col">
+          <div class="box"><b>Pedidos confirmados</b><span>Cantidad de productos terminados: pan, prepizzas, vienas…</span><br><span class="who">Clientes mayoristas y minoristas</span></div>
+          <div class="arrow">entran al sistema →</div>
+          <div class="box"><b>Recetas</b><span>Insumos que lleva cada producto: harina, levadura, manteca…</span><br><span class="who">Las define el gerente</span></div>
+        </div>
+        <div class="box core"><b>Sistema de planificación (MRP básico)</b><span>Calcula los insumos requeridos para cada día de entrega</span></div>
+        <div class="col">
+          <div class="box"><b>Órdenes de producción</b><span>Qué y cuánto amasar y hornear cada día.</span><br><span class="who">Panaderos</span></div>
+          <div class="box"><b>Control de stock</b><span>Materias primas disponibles en tiempo real.</span><br><span class="who">Depósito</span></div>
+          <div class="box"><b>Alertas de compras</b><span>Faltantes por debajo del stock de seguridad.</span><br><span class="who">Gerente autoriza</span></div>
         </div>
       </div>
-      <aside class="ticket" aria-label="Ejemplo de programa de producción">
-        <span class="stamp">Ejemplo</span>
-        <h3>Programa de producción</h3>
-        <div class="sub">Jueves · 6 pedidos confirmados</div>
-        <div class="trow"><b>Pan francés x1kg</b><span>48</span></div>
-        <div class="trow"><b>Viena x6u</b><span>36</span></div>
-        <div class="trow"><b>Prepizzas x6u</b><span>25</span></div>
-        <div class="trow"><b>Pan de hamburguesas x8u</b><span>20</span></div>
-        <div class="trow"><b>Viena x12u</b><span>15</span></div>
-        <div class="trow"><b>Tostadas x1kg</b><span>13</span></div>
-        <div class="trow"><b>Rosquillas x500g</b><span>12</span></div>
-        <div class="foot"><span>Harina 000 · 63,5 kg</span><span>Harina 0000 · 27,5 kg</span></div>
-        <div class="foot" style="margin-top:4px"><span>Levadura · 1,96 kg</span><span style="color:var(--warn)">Manteca: queda bajo seguridad</span></div>
-      </aside>
+      <div class="tags"><span>Evita desperdicios</span><span>Optimiza el stock</span><span>Conocimiento digitalizado</span></div>
     </div>
   </section>
 
-  <section class="sec" id="empresa">
+  <section class="sec">
     <div class="wrap">
-      <div class="sec-h"><span class="eyebrow">La empresa</span><h2>Una panadería familiar que abastece a almacenes y despensas</h2></div>
-      <div class="cols2">
-        <div class="prose">
-          <p><strong>El Sol Tucumano</strong> elabora y distribuye productos panificados al por mayor en Tucumán: pan francés, vienas, pan de hamburguesas, prepizzas, tostadas y rosquillas, entre otros. Sus clientes son almacenes, despensas, kioscos y rotiserías que piden todas las semanas. También vende al público en su local.</p>
-          <p>La estructura es chica y casi todo pasa por el gerente. Hoy toma los pedidos por teléfono, los anota en un cuaderno y le pasa a producción de palabra lo que hay que hornear. La cantidad de harina o levadura a comprar se calcula de memoria.</p>
-          <p>Ese modelo funciona mientras el negocio es chico. Con más clientes aparecen pedidos perdidos, faltantes de insumos que se descubren a las cinco de la mañana y desperdicio cuando se produce de más.</p>
-        </div>
-        <div class="areas">
-          <div class="area"><span class="k">Administración</span><p>Gerente y mostrador. Reciben y confirman pedidos, compran insumos y llevan las cuentas.</p></div>
-          <div class="area"><span class="k">Producción</span><p>Panaderos. Amasan, hornean y embolsan según el programa del día.</p></div>
-          <div class="area"><span class="k">Distribución</span><p>Repartidor y depósito. Reciben la mercadería, controlan el stock y entregan los pedidos.</p></div>
-        </div>
-      </div>
-      <div class="fig">
-        <h3 style="font-size:20px;margin-bottom:14px">Mapa de procesos</h3>
-        <div class="pmap">
-          <div class="r"><div>Estratégicos</div><div><span class="tag">Dirección general del negocio</span><span class="tag">Planificación comercial</span><span class="tag hl">Planificación de la producción</span></div></div>
-          <div class="r"><div>Clave</div><div><span class="tag hl">Recepción y registro de pedidos mayoristas</span><span class="tag hl">Producción de panificados</span><span class="tag">Preparación de pedidos</span><span class="tag">Distribución y reparto</span><span class="tag hl">Venta en el local</span></div></div>
-          <div class="r"><div>Soporte</div><div><span class="tag hl">Compras y abastecimiento de insumos</span><span class="tag">Gestión del personal</span><span class="tag">Gestión administrativa y contable</span><span class="tag">Limpieza</span><span class="tag">Mantenimiento de equipos</span></div></div>
-        </div>
-        <p class="legend"><span class="tag hl" style="font-size:11px">Resaltado</span> procesos que automatiza el sistema</p>
-      </div>
+      <h2>Cómo se usa</h2>
+      <p class="sub">Cada persona entra con su usuario y ve solo lo que necesita.</p>
+      <ol class="steps">
+        <li><b>Se carga el pedido</b><span>El cliente lo hace desde la web o el mostrador lo carga en el local. El gerente lo confirma.</span></li>
+        <li><b>Se planifica la producción</b><span>El sistema suma los pedidos del día, calcula los insumos y genera las órdenes de producción.</span></li>
+        <li><b>Se produce y se repone</b><span>Los panaderos completan las órdenes, el stock se descuenta solo y se avisa qué comprar.</span></li>
+      </ol>
     </div>
   </section>
 
-  <section class="sec alt" id="proyecto">
+  <section class="sec">
     <div class="wrap">
-      <div class="sec-h"><span class="eyebrow">El proyecto</span><h2>De automatizar los pedidos a gestionar toda la producción</h2>
-        <p class="lead">El trabajo se hizo en dos etapas. La primera rediseñó la gestión de pedidos con BPM. La segunda, este Seminario Integrador, suma la planificación de producción, el stock y las compras.</p></div>
-      <div class="stages">
-        <article class="stage">
-          <span class="lbl">Etapa 1 · Gestión de Procesos</span>
-          <h3>Pedidos mayoristas automatizados</h3>
-          <ul>
-            <li>Catálogo web donde el cliente arma su pedido.</li>
-            <li>Bot de Telegram para que el dueño confirme o cancele y para avisar al repartidor.</li>
-            <li>Comprobante en PDF y aviso por mail al cliente.</li>
-            <li>Orquestación con n8n sobre Google Sheets.</li>
-          </ul>
-          <div class="shots">
-            <img src="img/bot.png" alt="Mensaje del bot de Telegram con un pedido nuevo y botones Confirmar y Cancelar" loading="lazy">
-            <img src="img/entrega.png" alt="Mensajes del bot al repartidor con pedidos para entregar" loading="lazy">
-          </div>
-        </article>
-        <article class="stage now">
-          <span class="lbl">Etapa 2 · Seminario Integrador</span>
-          <h3>Planificación de producción y stock (MRP básico)</h3>
-          <ul>
-            <li>Pedidos desde la web y cargados en el mostrador, en un mismo sistema.</li>
-            <li>Recetas con los insumos de cada producto.</li>
-            <li>Cálculo automático de insumos para cada día de entrega.</li>
-            <li>Órdenes de producción para los panaderos.</li>
-            <li>Stock en tiempo real, con reservas y descuentos al producir.</li>
-            <li>Alertas de compra cuando un insumo va a quedar por debajo del stock de seguridad.</li>
-            <li>Panel de indicadores y acceso según el rol.</li>
-          </ul>
-        </article>
-      </div>
-      <figure class="fig">
-        <div class="scroll"><img src="img/BPMN.png" alt="Diagrama BPMN 2.0 del proceso de pedidos rediseñado, con carriles para cliente, automatización, dueño, producción y repartidor" loading="lazy"></div>
-        <figcaption>Proceso TO-BE de gestión de pedidos en BPMN 2.0, resultado de la Etapa 1. En pantallas chicas se desplaza hacia el costado.</figcaption>
-      </figure>
-    </div>
-  </section>
-
-  <section class="sec" id="flujo">
-    <div class="wrap">
-      <div class="sec-h"><span class="eyebrow">Cómo funciona</span><h2>Un pedido, de punta a punta</h2>
-        <p class="lead">Cada paso deja registro en el sistema. Las personas deciden y hacen el pan; el resto lo calcula y lo avisa el sistema.</p></div>
-      <div class="flow">
-        <div class="step"><h3>Llega el pedido</h3><p>El cliente lo hace desde el catálogo web, o el empleado lo carga cuando el cliente pide en el local.</p><span class="who">Cliente · Mostrador</span></div>
-        <div class="step"><h3>El gerente lo confirma</h3><p>Recibe el aviso al instante, revisa y confirma o cancela. El cliente se entera por mail.</p><span class="who">Gerente</span></div>
-        <div class="step"><h3>Se calculan los insumos</h3><p>Se suman los pedidos del día y se multiplican por las recetas para saber cuánta materia prima se necesita.</p><span class="who auto">Automático</span></div>
-        <div class="step"><h3>Se genera el programa</h3><p>Se arman las órdenes de producción con qué y cuánto amasar y hornear. Los insumos quedan reservados.</p><span class="who auto">Automático</span></div>
-        <div class="step"><h3>Los panaderos producen</h3><p>Marcan cada orden al empezar y al terminar. Al terminar, el stock se descuenta solo.</p><span class="who">Panaderos</span></div>
-        <div class="step"><h3>Se anticipa la compra</h3><p>Si un insumo va a quedar por debajo del stock de seguridad, aparece una alerta con la cantidad sugerida.</p><span class="who auto">Automático</span></div>
-        <div class="step"><h3>Se autoriza y se recibe</h3><p>El gerente autoriza la compra y el depósito registra la mercadería cuando llega.</p><span class="who">Gerente · Depósito</span></div>
-        <div class="step"><h3>Sale el reparto</h3><p>Con toda la producción terminada, los pedidos pasan a listos y el repartidor los entrega.</p><span class="who">Repartidor</span></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec alt" id="modulos">
-    <div class="wrap">
-      <div class="sec-h"><span class="eyebrow">Módulos</span><h2>Siete módulos que comparten los mismos datos</h2></div>
-      <div class="mods">
-        <article class="mod"><h3>Pedidos</h3><p>Pedidos web y de mostrador, de clientes mayoristas y minoristas, con envío o retiro, con estados: pendiente, confirmado, en producción, listo, entregado y cancelado.</p><div class="roles"><span>Gerente</span><span>Mostrador</span><span>Cliente</span></div></article>
-        <article class="mod"><h3>Recetas</h3><p>La lista de materiales de cada producto: cuánto lleva de cada insumo por unidad vendida.</p><div class="roles"><span>Gerente</span><span>Panadero</span></div></article>
-        <article class="mod"><h3>Planificación</h3><p>Cruza los pedidos confirmados con las recetas y calcula los insumos de cada día. Permite sumar producción extra para el local.</p><div class="roles"><span>Gerente</span></div></article>
-        <article class="mod"><h3>Producción</h3><p>Las órdenes del día para los panaderos, con las cantidades de cada insumo ya calculadas.</p><div class="roles"><span>Panadero</span><span>Gerente</span></div></article>
-        <article class="mod"><h3>Stock</h3><p>Materias primas en depósito, reservadas y disponibles, con ingresos, ajustes por conteo y el historial de movimientos.</p><div class="roles"><span>Depósito</span><span>Gerente</span></div></article>
-        <article class="mod"><h3>Compras</h3><p>Alertas por stock de seguridad, cantidad sugerida según la presentación del proveedor y seguimiento de cada orden de compra.</p><div class="roles"><span>Gerente</span><span>Depósito</span></div></article>
-        <article class="mod"><h3>Panel</h3><p>Pedidos por día y por canal, productos más pedidos, temas pendientes y la actividad reciente de cada usuario.</p><div class="roles"><span>Gerente</span></div></article>
-        <article class="mod"><h3>Usuarios y roles</h3><p>Cada perfil ve solo lo que necesita. Toda acción queda registrada con quién la hizo y cuándo.</p><div class="roles"><span>Todos</span></div></article>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec" id="simulador">
-    <div class="wrap">
-      <div class="sec-h"><span class="eyebrow">Simulador</span><h2>Probá el cálculo de insumos</h2>
-        <p class="lead">Cambiá las cantidades a producir y mirá cuánta materia prima hace falta y si alcanza el stock. Es el mismo cálculo que hace el módulo de Planificación, con recetas y stock de ejemplo.</p></div>
-      <div class="sim">
-        <div class="card"><h3 style="font-size:18px;margin-bottom:6px">Productos a elaborar</h3><div id="sim-p"></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" type="button" data-preset="normal">Día normal</button><button class="btn" type="button" data-preset="fuerte">Víspera de feriado</button></div></div>
-        <div class="card"><h3 style="font-size:18px;margin-bottom:6px">Insumos requeridos</h3><div id="sim-i"></div>
-          <div class="legend"><span>Barra: lo que se usa del stock disponible</span><span>Línea: queda en stock de seguridad</span></div></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec alt" id="problema">
-    <div class="wrap">
-      <div class="sec-h"><span class="eyebrow">Problemática y solución</span><h2>Qué cambia para la panadería</h2></div>
-      <div class="tbl"><table>
-        <thead><tr><th>Hoy</th><th>Con el sistema</th><th>Impacto</th></tr></thead>
-        <tbody>
-          <tr><td>Pedidos anotados en un cuaderno, por teléfono o en el local.</td><td>Pedidos web y de mostrador en un único registro digital.</td><td>Sin pedidos perdidos ni errores al pasarlos en limpio.</td></tr>
-          <tr><td>El gerente le dice a producción qué hornear.</td><td>Programa de producción generado desde los pedidos confirmados.</td><td>Producción alineada con lo vendido y menos desperdicio.</td></tr>
-          <tr><td>Los insumos necesarios se calculan de memoria.</td><td>Cálculo automático con las recetas de cada producto.</td><td>El conocimiento del negocio queda en el sistema, no en una persona.</td></tr>
-          <tr><td>Los faltantes aparecen al momento de producir.</td><td>Alertas de compra antes de quedar por debajo del stock de seguridad.</td><td>Menos urgencias y compras planificadas.</td></tr>
-          <tr><td>No se sabe cuánto stock hay sin ir a contar.</td><td>Stock en tiempo real, con reservas y movimientos.</td><td>Decisiones con datos actualizados.</td></tr>
-          <tr><td>Sin indicadores ni historial.</td><td>Panel con indicadores y registro de cada acción.</td><td>Trazabilidad completa del pedido y de la producción.</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-  </section>
-
-  <section class="sec" id="roles">
-    <div class="wrap">
-      <div class="sec-h"><span class="eyebrow">Usuarios</span><h2>Cinco perfiles, cada uno con su pantalla</h2></div>
-      <div class="roles-g">
-        <div class="role"><h3>Gerente</h3><p>Confirma pedidos, planifica la producción, edita recetas y autoriza compras. Ve el panel completo.</p></div>
-        <div class="role"><h3>Mostrador</h3><p>Carga los pedidos de los clientes que piden en el local y marca las entregas.</p></div>
-        <div class="role"><h3>Panadero</h3><p>Ve las órdenes del día con las cantidades de cada insumo y las marca al terminarlas.</p></div>
-        <div class="role"><h3>Depósito</h3><p>Registra la mercadería que llega, hace ajustes por conteo y controla el stock.</p></div>
-        <div class="role"><h3>Clientes</h3><p>Mayoristas (comercios) y minoristas (particulares). Piden desde el catálogo con su lista de precios, eligen envío o retiro en el local y siguen el estado.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec alt" id="tecnologia">
-    <div class="wrap">
-      <div class="sec-h"><span class="eyebrow">Tecnología</span><h2>Arquitectura en la nube, de bajo costo</h2>
-        <p class="lead">Herramientas con plan gratuito, para que una pyme pueda adoptarlas sin inversión inicial.</p></div>
-      <div class="arch">
-        <div class="layer"><span class="lbl">Frontend</span><h3>Aplicación web</h3><p>Una sola aplicación responsive para la computadora del local y el celular del panadero.</p><div class="chips"><span>React</span><span>Vite</span><span>Netlify</span></div></div>
-        <div class="layer"><span class="lbl">Backend</span><h3>Reglas del negocio</h3><p>Cálculo de insumos, reservas, descuento de stock y alertas de compra, del lado del servidor.</p><div class="chips"><span>Node.js</span><span>Netlify Functions</span><span>API REST</span></div></div>
-        <div class="layer"><span class="lbl">Datos</span><h3>Base de datos y usuarios</h3><p>Pedidos, recetas, insumos y movimientos en tiempo real, con inicio de sesión y permisos por rol.</p><div class="chips"><span>Firebase</span><span>Firestore</span><span>Firebase Auth</span></div></div>
-      </div>
-      <div class="integr"><b>Integraciones de la Etapa 1:</b><span class="chips"><span>n8n</span><span>Telegram Bot API</span><span>Gmail</span><span>Google Docs (PDF)</span></span><span>para avisos y comprobantes automáticos.</span></div>
-    </div>
-  </section>
-
-  <section class="sec" id="demo">
-    <div class="wrap">
-      <div class="cta">
-        <div>
-          <h2>Probá el prototipo funcional</h2>
-          <p>Entrá con cualquiera de los cinco perfiles y seguí un pedido completo: confirmalo, planificá la producción, terminala como panadero y autorizá la compra que sugiere el sistema. Los datos son de ejemplo.</p>
-          <a class="btn primary" href="/login">Ingresar al sistema</a>
-        </div>
-        <ul>
-          <li><span>Gerente</span><span>Panel, planificación, compras</span></li>
-          <li><span>Mostrador</span><span>Carga de pedidos</span></li>
-          <li><span>Panadero</span><span>Órdenes de producción</span></li>
-          <li><span>Depósito</span><span>Stock y recepciones</span></li>
-          <li><span>Cliente mayorista o minorista</span><span>Catálogo y seguimiento</span></li>
-        </ul>
-      </div>
+      <h2>Tecnología</h2>
+      <p class="sub">Herramientas en la nube con plan gratuito.</p>
+      <div class="tech"><span>Frontend: React</span><span>Backend: Node.js</span><span>Base de datos: Firebase Firestore (NoSQL)</span><span>Usuarios: Firebase Auth</span><span>Hosting: Netlify</span></div>
     </div>
   </section>
 </main>
 
 <footer>
   <div class="wrap">
-    <div><a class="logo" href="#inicio" style="margin-bottom:12px"><span class="sun" aria-hidden="true"></span><b style="color:var(--ink)">El Sol Tucumano</b></a>
-      <p>Sistema de gestión de pedidos, producción y stock para una panadería familiar mayorista de Tucumán.</p>
-      <p style="margin-top:10px">Proyecto académico · Seminario Integrador · Universidad Tecnológica Nacional, Facultad Regional Tucumán · 2026</p></div>
-    <div><h4>Equipo</h4><ul><li>Ronald Manuel Parada Parejas</li><li>Florencia Perez</li><li>Felicitas Ralle</li><li>Tomas Andres Recalde</li><li>Facundo Raúl Salas Vallejo</li><li>Fabrizio Jose Santillan Giuliano</li></ul></div>
-    <div><h4>Secciones</h4><ul><li><a href="#empresa">La empresa</a></li><li><a href="#proyecto">El proyecto</a></li><li><a href="#flujo">Cómo funciona</a></li><li><a href="#simulador">Simulador</a></li><li><a href="#tecnologia">Tecnología</a></li><li><a href="/login">Ingresar al sistema</a></li></ul></div>
+    <p><b>El Sol Tucumano</b> · Sistema de planificación de producción y stock<br>Seminario Integrador · Universidad Tecnológica Nacional, Facultad Regional Tucumán · 2026</p>
+    <p>Parada Parejas · Perez · Ralle · Recalde · Salas Vallejo · Santillan Giuliano</p>
   </div>
 </footer>
-
-<script>
-(function(){
-  const INS={h000:['Harina 000','kg',220,150],h0000:['Harina 0000','kg',95,100],lev:['Levadura fresca','kg',2.5,3],sal:['Sal fina','kg',18,10],azu:['Azúcar','kg',40,20],gra:['Grasa vacuna','kg',14,10],man:['Manteca','kg',6,8],hue:['Huevos','u',240,180],lec:['Leche','l',30,20],ace:['Aceite de girasol','l',12,10],tom:['Puré de tomate','kg',14,8]};
-  const PR=[
-    ['pf','Pan francés x1kg',{h000:.65,lev:.015,sal:.012,gra:.02}],
-    ['v6','Viena x6u',{h0000:.22,lev:.006,azu:.02,man:.02,lec:.06,sal:.004}],
-    ['v12','Viena x12u',{h0000:.44,lev:.012,azu:.04,man:.04,lec:.12,sal:.008}],
-    ['ph','Pan de hamburguesas x8u',{h0000:.48,lev:.012,azu:.03,man:.03,lec:.1,hue:1,sal:.008}],
-    ['ro','Rosquillas x500g',{h0000:.28,azu:.09,man:.06,hue:3,lec:.04}],
-    ['to','Tostadas x1kg',{h000:.75,lev:.012,azu:.05,gra:.05,sal:.012}],
-    ['pp','Prepizzas x6u',{h000:.9,lev:.018,ace:.06,sal:.018,tom:.3}]
-  ];
-  const PRESETS={normal:{pf:48,v6:36,v12:15,ph:20,ro:12,to:13,pp:25},fuerte:{pf:110,v6:70,v12:40,ph:45,ro:30,to:25,pp:60}};
-  let q={...PRESETS.normal};
-  const fmt=(n,u)=>u==='u'?Math.ceil(n).toLocaleString('es-AR'):n.toLocaleString('es-AR',{maximumFractionDigits:2});
-  const P=document.getElementById('sim-p'),I=document.getElementById('sim-i');
-  function drawP(){P.innerHTML=PR.map(([id,n])=>`<div class="prow"><span>${n}</span><span class="stepper"><button type="button" data-d="-5" data-id="${id}" aria-label="Restar 5">−</button><input id="sim-${id}" type="number" min="0" value="${q[id]}" data-id="${id}" aria-label="Cantidad de ${n}"><button type="button" data-d="5" data-id="${id}" aria-label="Sumar 5">+</button></span></div>`).join('')}
-  function drawI(){
-    const need={};PR.forEach(([id,,b])=>Object.entries(b).forEach(([k,x])=>need[k]=(need[k]||0)+x*(q[id]||0)));
-    const rows=Object.entries(need).filter(([,v])=>v>0).map(([k,v])=>{const [n,u,st,seg]=INS[k];return{n,u,st,seg,v,queda:st-v}}).sort((a,b)=>(a.queda-a.seg)/a.st-(b.queda-b.seg)/b.st);
-    I.innerHTML=rows.length?rows.map(r=>{const pct=Math.min(100,r.v/r.st*100);const c=r.queda<0?'bad':r.queda<r.seg?'warn':'ok';const lab=r.queda<0?`Faltan ${fmt(-r.queda,r.u)} ${r.u}`:r.queda<r.seg?'Bajo seguridad':'Alcanza';
-      return `<div class="irow"><div><div style="font-weight:500">${r.n}</div><div class="num" style="font-size:12px;color:var(--muted)">${fmt(r.v,r.u)} de ${fmt(r.st,r.u)} ${r.u}</div></div><div class="bar"><i style="width:${pct}%;background:var(--${c})"></i><s style="left:${Math.max(0,(1-r.seg/r.st)*100)}%"></s></div><span class="pill ${c}">${lab}</span></div>`}).join(''):'<p style="color:var(--muted);padding:12px 0">Sumá algún producto para ver el cálculo.</p>';
-  }
-  P.addEventListener('click',e=>{const b=e.target.closest('button[data-d]');if(!b)return;q[b.dataset.id]=Math.max(0,(q[b.dataset.id]||0)+(+b.dataset.d));drawP();drawI()});
-  P.addEventListener('change',e=>{const i=e.target;if(!i.dataset.id)return;q[i.dataset.id]=Math.max(0,Math.floor(+i.value||0));drawI()});
-  document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{q={...PRESETS[b.dataset.preset]};drawP();drawI()}));
-  drawP();drawI();
-})();
-</script>
-
+</body>
 </html>
