@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -7,6 +7,7 @@ import { useData } from '../data';
 import { ROLES, VISTAS } from '../util';
 import { estadoCuenta, fechaAR, proyeccion } from '../../shared/negocio.js';
 import { TemaToggle } from '../ui';
+import Avisos from './Avisos';
 
 /** Estado de la conexión y botón para instalar la app (PWA). */
 function useApp() {
@@ -44,10 +45,15 @@ export default function Layout() {
     compras: nAl ? <span className="badge" title="Insumos en alerta">{nAl}</span> : null,
     cuentas: nVenc ? <span className="badge" title="Cuentas vencidas">{nVenc}</span> : null,
   };
+  // Al cambiar de pantalla, el foco va al título para que los lectores de pantalla anuncien dónde se está.
+  const h1 = useRef();
+  const primera = useRef(true);
+  useEffect(() => { if (primera.current) { primera.current = false; return; } h1.current?.focus({ preventScroll: true }); document.title = `${titulo || 'Sistema'} · El Sol Siciliano`; }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   const fechaLarga = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
   return (
     <div className="app">
+      <a className="skip" href="#contenido">Saltar al contenido</a>
       <aside className="side">
         <a className="brand" href="/presentacion/index.html" title="Presentación del proyecto"><img src="/marca/sol-192.png" alt="" /><div><b>El Sol <i>Siciliano</i></b><span>Gestión de producción</span></div></a>
         <nav className="nav" aria-label="Secciones">
@@ -62,15 +68,15 @@ export default function Layout() {
             <TemaToggle />
           </div>
           {app.instalar && <button className="btn sm" type="button" onClick={app.instalar}>Instalar la app</button>}
-          <a className="linkbtn small" href="/presentacion/index.html">Presentación del proyecto</a>
+          <a className="linkbtn small solo-escritorio" href="/presentacion/index.html">Presentación del proyecto</a>
         </div>
       </aside>
-      <main>
+      <main id="contenido">
         <div className="head">
-          <div><h1>{titulo}</h1><p>{sub}</p></div>
-          <div className="today"><b>{fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)}</b></div>
+          <div><h1 ref={h1} tabIndex={-1}>{titulo}</h1><p>{sub}</p></div>
+          <div className="head-der"><div className="today"><b>{fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)}</b></div><Avisos /></div>
         </div>
-        {!app.online && <div className="note warn">Sin conexión a internet. Podés seguir mirando, pero los cambios no se van a guardar hasta que vuelva la conexión.</div>}
+        {!app.online && <div className="note warn" role="alert">Sin conexión a internet. Podés seguir mirando, pero los cambios no se van a guardar hasta que vuelva la conexión.</div>}
         {d.error && (
           <div className="note bad">
             No se pudieron leer algunos datos ({d.error.code || d.error.message}). Revisá que las reglas de Firestore estén publicadas y que tu usuario tenga un rol asignado.

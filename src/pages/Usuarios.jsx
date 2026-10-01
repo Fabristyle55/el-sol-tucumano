@@ -5,7 +5,7 @@ import { useData } from '../data';
 import { Modal, useAccion } from '../ui';
 import { LOCALIDADES, ROLES, TIPO_LABEL } from '../util';
 
-const PERSONAL = ['gerente', 'mostrador', 'panadero', 'deposito'];
+const PERSONAL = ['gerente', 'mostrador', 'panadero', 'deposito', 'repartidor'];
 
 export default function Usuarios() {
   const { perfil } = useAuth();

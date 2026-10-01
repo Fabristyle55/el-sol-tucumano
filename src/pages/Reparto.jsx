@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { useData } from '../data';
 import { Pill, Vacio } from '../ui';
+import { aCobrarEnEntrega } from '../../shared/negocio.js';
 import { cant, dLarga, dRel, estadoDe, hoy, manana, money, sumarDias } from '../util';
 
 /** Hoja de reparto imprimible: pedidos con envío de un día, agrupados por localidad. */
@@ -12,11 +13,11 @@ export default function Reparto() {
     .sort((a, b) => (a.localidad || '').localeCompare(b.localidad || '') || (a.direccion || '').localeCompare(b.direccion || '') || a.numero - b.numero);
   const zonas = {};
   lista.forEach((p) => { (zonas[p.localidad || 'Sin localidad'] ||= []).push(p); });
-  const aCobrar = (p) => (p.pago === 'Cuenta corriente' || p.pago === 'Transferencia' ? 0 : p.total);
+  const aCobrar = aCobrarEnEntrega;
   const totalCobrar = lista.reduce((s, p) => s + aCobrar(p), 0);
   const bultos = {};
   lista.forEach((p) => p.items.forEach((i) => { bultos[i.nombre] = (bultos[i.nombre] || 0) + i.cantidad; }));
-  const sinListo = lista.filter((p) => !['listo', 'entregado'].includes(p.estado)).length;
+  const sinListo = lista.filter((p) => !['listo', 'en_camino', 'entregado'].includes(p.estado)).length;
 
   return (
     <>
@@ -26,7 +27,7 @@ export default function Reparto() {
           <div className="tabs">{[sumarDias(hoy(), -1), hoy(), manana()].map((d) => <button key={d} aria-pressed={d === D} onClick={() => setParams({ d })}>{dRel(d)}</button>)}</div>
           <input type="date" aria-label="Otro día" value={D} onChange={(e) => e.target.value && setParams({ d: e.target.value })} />
         </div>
-        <div className="row"><Link className="btn" to="/pedidos">Volver a pedidos</Link><button className="btn primary" disabled={!lista.length} onClick={() => window.print()}>Imprimir o guardar PDF</button></div>
+        <div className="row"><Link className="btn" to="/pedidos">Volver a pedidos</Link><Link className="btn" to="/entregas">Modo repartidor</Link><button className="btn primary" disabled={!lista.length} onClick={() => window.print()}>Imprimir o guardar PDF</button></div>
       </div>
       {sinListo > 0 && <div className="note warn no-print">{sinListo === 1 ? 'Hay 1 pedido que todavía no está listo' : `Hay ${sinListo} pedidos que todavía no están listos`} (en producción o sin confirmar). Igual aparecen en la hoja.</div>}
 

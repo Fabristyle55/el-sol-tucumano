@@ -17,7 +17,7 @@ export const MENSAJES_AUTH = {
 // Cuentas que crea "npm run seed" para probar cada rol en la presentación.
 const DEMO = [
   ['Gerente', 'gerente@elsol.demo'], ['Mostrador', 'mostrador@elsol.demo'], ['Panadero', 'panadero@elsol.demo'],
-  ['Depósito', 'deposito@elsol.demo'], ['Cliente mayorista', 'cliente@elsol.demo'], ['Cliente minorista', 'minorista@elsol.demo'],
+  ['Depósito', 'deposito@elsol.demo'], ['Repartidor', 'repartidor@elsol.demo'], ['Cliente mayorista', 'cliente@elsol.demo'], ['Cliente minorista', 'minorista@elsol.demo'],
 ];
 
 export function AuthArte() {

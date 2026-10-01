@@ -40,6 +40,7 @@ app/
 | Mostrador | Cargar pedidos de clientes que piden en el local y marcar entregas |
 | Panadero | Ver y completar las órdenes de producción; ver recetas |
 | Depósito | Ver stock, registrar ingresos y ajustes, recibir compras |
+| Repartidor | Ver los envíos del día en el celular, cómo llegar, avisar por WhatsApp, cobrar y marcar cada entrega |
 | Cliente | Mayorista (comercio) o minorista (particular). Hace pedidos desde el catálogo con su lista de precios, elige envío o retiro en el local y sigue el estado |
 
 ## Puesta en marcha (una sola vez)
@@ -75,6 +76,7 @@ Esto crea los insumos, productos con recetas, clientes, algunos pedidos y un usu
 | mostrador@elsol.demo | Mostrador |
 | panadero@elsol.demo | Panadero |
 | deposito@elsol.demo | Depósito |
+| repartidor@elsol.demo | Repartidor |
 | cliente@elsol.demo | Cliente mayorista (Almacén Don Pedro) |
 | minorista@elsol.demo | Cliente minorista (Laura Gómez) |
 
@@ -145,6 +147,21 @@ Prueban el cálculo de insumos, las reservas, los faltantes y la proyección de 
 | Historial de cambios | Historial de cambios | Quién hizo cada acción y cuándo, con búsqueda, filtros y exportación a Excel. No se puede borrar ni modificar. |
 | App instalable (PWA) | Botón "Instalar la app" | Se puede agregar a la pantalla de inicio del celular o la PC y avisa cuando no hay conexión. |
 | Recorrido de demostración | Recorrido de demostración | Un pedido de punta a punta, paso a paso, usando las funciones reales del sistema. Ideal para la presentación. |
+
+## Funciones agregadas (octubre 2026, segunda tanda)
+
+| Función | Dónde | Qué hace |
+|---|---|---|
+| Rol Repartidor | Entregas del día | Pantalla para el celular con los envíos del día: "Salgo a repartir", cómo llegar (Google Maps), llamar, WhatsApp "Estoy llegando", marcar entregado con lo cobrado o "No pude entregar" con el motivo. Lo cobrado en efectivo entra en el cierre de caja. El pedido pasa por el estado nuevo **En camino**. |
+| Avisos por WhatsApp | Pedidos, Despacho → Reservas, Cuentas corrientes, Entregas | Botón que abre WhatsApp con el mensaje ya armado según el estado del pedido o el saldo de la cuenta. No usa ninguna API ni tiene costo. |
+| Seguimiento del pedido | Mis pedidos | Línea de tiempo con íconos y la hora de cada paso: recibido, confirmado, en el horno, listo, en camino y entregado (o retirado). |
+| Promociones y cupones | Promociones y cupones (gerente), Catálogo, Cargar pedido | Descuento por cantidad (ej.: 10 % llevando 50 o más) que se aplica solo, y cupones con código, compra mínima, vencimiento y límite de usos. El precio final lo calcula siempre el backend. |
+| Gráficos en el Panel | Panel | Ventas de los últimos 30 días por día (mayoristas y minoristas) con comparación contra los 30 anteriores, productos que más facturan y margen de cada producto. |
+| Campanita de avisos | Arriba a la derecha | Avisos en tiempo real según el rol (pedidos por confirmar, reservas, stock, cuentas vencidas, envíos listos; al cliente, cada cambio de su pedido). Puede mostrar notificaciones del navegador. |
+| Accesibilidad y celular | Toda la app | Botones más grandes en pantallas táctiles, diálogos tipo "hoja" en el celular, enlace "Saltar al contenido", foco ordenado en los diálogos y anuncios para lectores de pantalla. |
+| Respaldo automático | Historial y respaldos | Todos los domingos se guarda una copia completa de la base de datos (Netlify Blobs, se conservan 12). El gerente puede hacer uno al momento y descargarlo en .json. |
+
+Para una base que ya estaba cargada: `npm run datos-nuevos` crea el usuario repartidor y promociones de ejemplo, y `npm run reglas` publica `firestore.rules` en Firebase sin tener que pegarlas a mano.
 
 ### Activar los avisos por mail (opcional)
 

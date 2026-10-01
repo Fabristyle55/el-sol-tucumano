@@ -3,9 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useData } from '../data';
-import { Modal, Pill, Vacio, useAccion, Contador } from '../ui';
-import { cant, cuando, dLarga, dRel, dShort, estadoDe, hhmm, hoy, money, sumarDias } from '../util';
-import { CATEGORIAS_DESPACHO, MOTIVOS_MERMA, PAGOS_DESPACHO, precioArticulo, precioBaseArticulo, r3, resumenCaja, vencimiento } from '../../shared/negocio.js';
+import { BotonWhatsApp, Modal, Pill, Vacio, useAccion, Contador } from '../ui';
+import { cant, cuando, dLarga, dRel, dShort, estadoDe, hhmm, hoy, money, sumarDias, waPedido } from '../util';
+import { CATEGORIAS_DESPACHO, MOTIVOS_MERMA, PAGOS_DESPACHO, precioArticulo, precioBaseArticulo, r3, resumenCaja, cobrosDelDia, vencimiento } from '../../shared/negocio.js';
 import { ImagenArticulo } from '../components/Pan';
 import PedidoModal from '../components/PedidoModal';
 
@@ -169,6 +169,7 @@ function Reservas() {
               <div className="row" style={{ justifyContent: 'space-between' }}>
                 <span className="num" style={{ fontWeight: 800 }}>{money(p.total)} <span className="muted small" style={{ fontWeight: 500 }}>· {p.pago}</span></span>
                 <div className="row">
+                  <BotonWhatsApp href={waPedido(p)}>Avisar</BotonWhatsApp>
                   <button className="btn sm ghost-bad" disabled={ocupado} onClick={() => accion(p, 'cancelar', `Reserva #${p.numero} cancelada`)}>Cancelar</button>
                   {p.estado === 'reservado'
                     ? <button className="btn sm primary" disabled={ocupado} onClick={() => accion(p, 'preparar', `Reserva #${p.numero} preparada; se descontó del despacho`)}>Preparar</button>
@@ -358,8 +359,11 @@ function Caja() {
   const [f, setF] = useState({ fondo: '', contado: '', notas: '' });
   const [ocupado, correr] = useAccion();
   const ventasHoy = ventas.filter((v) => v.dia === T);
-  const reservasHoy = pedidos.filter((p) => p.tipoCliente === 'minorista' && p.estado === 'entregado' && p.entregadoDia === T);
-  const r = resumenCaja(ventasHoy, reservasHoy);
+  const entregadosHoy = pedidos.filter((p) => p.estado === 'entregado' && p.entregadoDia === T);
+  const reservasHoy = cobrosDelDia(entregadosHoy.filter((p) => p.modoEntrega === 'retiro'));
+  const repartoHoy = cobrosDelDia(entregadosHoy.filter((p) => p.modoEntrega !== 'retiro'));
+  const r = resumenCaja(ventasHoy, [...reservasHoy, ...repartoHoy]);
+  const efe = (xs) => xs.filter((p) => p.pago === 'Efectivo').reduce((s, p) => s + p.total, 0);
   const fondo = Math.max(0, Math.round(Number(f.fondo) || 0));
   const esperado = fondo + r.efectivo;
   const contado = f.contado === '' ? null : Math.round(Number(f.contado) || 0);
@@ -378,8 +382,9 @@ function Caja() {
         <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="card-h" style={{ marginBottom: 0 }}><h2>Cierre de caja de hoy</h2>{cierreHoy && <Pill e={['Caja cerrada', 'ok']} />}</div>
           <div className="lines">
-            <div className="line"><span>Ventas en efectivo</span><span className="num">{money(r.efectivo - reservasHoy.filter((p) => p.pago === 'Efectivo').reduce((s, p) => s + p.total, 0))}</span></div>
-            <div className="line"><span>Reservas retiradas en efectivo</span><span className="num">{money(reservasHoy.filter((p) => p.pago === 'Efectivo').reduce((s, p) => s + p.total, 0))}</span></div>
+            <div className="line"><span>Ventas en efectivo</span><span className="num">{money(r.efectivo - efe(reservasHoy) - efe(repartoHoy))}</span></div>
+            <div className="line"><span>Reservas retiradas en efectivo</span><span className="num">{money(efe(reservasHoy))}</span></div>
+            <div className="line"><span>Cobrado en el reparto (lo rinde el repartidor)</span><span className="num">{money(efe(repartoHoy))}</span></div>
             {Object.entries(r.porPago).filter(([p]) => p !== 'Efectivo').map(([p, t]) => <div className="line muted" key={p}><span>{p} (no entra en la caja)</span><span className="num">{money(t)}</span></div>)}
           </div>
           {cierreHoy && !puedeCerrar ? (

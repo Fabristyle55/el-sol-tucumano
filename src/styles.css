@@ -499,3 +499,133 @@ tr.detail td { background: var(--surface-2); font-size: 13px }
   .franja, .comprobante .items th { -webkit-print-color-adjust: exact; print-color-adjust: exact }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important } }
+
+/* ---------- Accesibilidad ---------- */
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0 }
+.skip { position: absolute; left: 12px; top: -60px; z-index: 50; background: var(--verde); color: var(--brand-ink); padding: 8px 14px; border-radius: var(--r-sm); font-weight: 600; text-decoration: none; transition: top .15s }
+.skip:focus { top: 12px }
+.head h1:focus { outline: none }
+.modal:focus { outline: none }
+@media (pointer: coarse) {
+  .btn.sm { height: 40px; padding: 0 12px }
+  .btn { min-height: 44px }
+  .icon-btn { width: 40px; height: 40px }
+  .tabs button { min-height: 40px }
+}
+@media (forced-colors: active) { .btn, .card, .pill { border: 1px solid CanvasText } .stripe { forced-color-adjust: none } }
+
+/* ---------- Encabezado: fecha y campanita ---------- */
+.head-der { display: flex; align-items: center; gap: 12px }
+.avisos { position: relative }
+.campana { position: relative }
+.campana svg { width: 18px; height: 18px }
+.campana-n { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--rojo); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; animation: modalIn .25s var(--ease) both }
+.avisos-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(380px, calc(100vw - 32px)); max-height: min(70vh, 520px); overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); z-index: 25; animation: modalIn .18s var(--ease) both }
+.avisos-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface) }
+.avisos-lista { list-style: none; margin: 0; padding: 4px 0 }
+.avisos-lista a { display: flex; gap: 10px; padding: 10px 14px; text-decoration: none; color: inherit }
+.avisos-lista a:hover, .avisos-lista a:focus-visible { background: var(--surface-2) }
+.avisos-lista li.nuevo .av-t { font-weight: 600 }
+.avisos-lista li.nuevo a { background: color-mix(in srgb, var(--verde-soft) 55%, transparent) }
+.avisos-lista .stripe { width: 3px; border-radius: 2px; flex: none; align-self: stretch }
+.av-body { display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.avisos-pie { padding: 10px 14px; border-top: 1px solid var(--line) }
+.avisos .empty { padding: 24px 14px }
+
+/* ---------- WhatsApp ---------- */
+.btn.wa { color: #128C4A; border-color: color-mix(in srgb, #25D366 45%, var(--line-2)) }
+.btn.wa:hover { background: color-mix(in srgb, #25D366 12%, var(--surface)) }
+:root[data-theme="dark"] .btn.wa { color: #4ADE80 }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.wa { color: #4ADE80 } }
+
+/* ---------- Entregas (repartidor) ---------- */
+.entregas { display: flex; flex-direction: column; gap: 14px }
+.kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+.entregas-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px }
+.entrega { display: flex; flex-direction: column; gap: 8px }
+.entrega.hecha { opacity: .7 }
+.entrega-cab { display: flex; gap: 12px; align-items: flex-start }
+.entrega-cab h2 { font-size: 16px }
+.entrega-n { width: 28px; height: 28px; border-radius: 50%; background: var(--verde-soft); color: var(--verde-deep); display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none }
+:root[data-theme="dark"] .entrega-n { color: var(--verde) }
+.entrega.hecha .entrega-n { background: var(--ok); color: var(--brand-ink) }
+.entrega-cobro { padding: 8px 12px; background: var(--surface-2); border-radius: var(--r-sm) }
+.entrega-acciones { gap: 8px }
+.radios { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px }
+.radios legend { margin-bottom: 4px; font-weight: 600 }
+.radios label { display: flex; gap: 8px; align-items: center; min-height: 32px }
+
+/* ---------- Seguimiento del pedido ---------- */
+.seguimiento { list-style: none; margin: 14px 0 0; padding: 0; display: flex }
+.seguimiento li { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; position: relative; color: var(--muted); font-size: 12px; min-width: 0 }
+.seguimiento li::before { content: ""; position: absolute; top: 17px; right: 50%; width: 100%; height: 3px; background: var(--line); z-index: 0 }
+.seguimiento li:first-child::before { display: none }
+.seguimiento li.hecho::before, .seguimiento li.actual::before { background: var(--verde) }
+.seg-ic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 2px solid var(--line); position: relative; z-index: 1; color: var(--muted) }
+.seg-ic svg { width: 18px; height: 18px }
+.seguimiento li.hecho .seg-ic { background: var(--verde); border-color: var(--verde); color: var(--brand-ink) }
+.seguimiento li.actual .seg-ic { border-color: var(--verde); color: var(--verde); box-shadow: 0 0 0 4px var(--verde-soft); animation: latido 2s ease-in-out infinite }
+.seguimiento li.hecho, .seguimiento li.actual { color: var(--ink) }
+.seguimiento li.actual .seg-n { font-weight: 600 }
+.seg-t { font-size: 11px; color: var(--muted); min-height: 15px; font-variant-numeric: tabular-nums }
+.seg-frase { margin: 10px 0 0; font-weight: 500 }
+@keyframes latido { 0%, 100% { box-shadow: 0 0 0 4px var(--verde-soft) } 50% { box-shadow: 0 0 0 8px var(--verde-soft) } }
+@media (max-width: 560px) {
+  .seguimiento { flex-direction: column; gap: 0 }
+  .seguimiento li { flex-direction: row; text-align: left; gap: 10px; padding-bottom: 14px }
+  .seguimiento li::before { top: -14px; right: auto; left: 17px; width: 3px; height: 18px }
+  .seg-n { flex: 1 }
+}
+
+/* ---------- Promociones ---------- */
+.ph-oferta.promo { background: var(--verde); color: var(--brand-ink) }
+.promo-txt { font-size: 12px; color: var(--muted) }
+.promo-txt.ok, .ok-txt { color: var(--ok) }
+.promo-tag { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 600; padding: 0 6px; line-height: 18px; border-radius: 4px; background: var(--verde-soft); color: var(--verde-deep) }
+:root[data-theme="dark"] .promo-tag { color: var(--verde) }
+.promo-ahorro { color: var(--ok); font-weight: 500 }
+.comprobante .tot.sub { font-size: 13px; color: var(--muted); border-top: 0; padding-top: 0 }
+
+/* ---------- Gráficos ---------- */
+.graf { position: relative }
+.graf-tip { position: absolute; top: 0; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); box-shadow: var(--shadow); padding: 8px 10px; font-size: 12px; min-width: 190px; pointer-events: none; z-index: 3 }
+.graf-tip b { display: block; margin-bottom: 4px }
+.graf-tip div { display: flex; align-items: center; gap: 6px }
+.graf-tip div .num { margin-left: auto; font-weight: 600 }
+.graf-tip i { width: 8px; height: 8px; border-radius: 2px; flex: none }
+.graf-tot { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; font-weight: 600 }
+.mini-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px }
+.mini-kpis > div { display: flex; flex-direction: column; gap: 2px }
+.mini-kpis b { font-size: 22px; font-weight: 600; letter-spacing: -.02em }
+.var.sube { color: var(--ok) }
+.var.baja { color: var(--rojo) }
+.barras-h { display: flex; flex-direction: column; gap: 10px }
+.bh-t { display: flex; justify-content: space-between; gap: 8px; font-size: 13px }
+.bh-t .num { font-weight: 600 }
+.bh-bar { height: 8px; background: var(--surface-2); border-radius: 4px; margin-top: 4px; overflow: hidden }
+.bh-bar i { display: block; height: 100%; border-radius: 4px; transform-origin: left; animation: growX .6s var(--ease) both }
+.bh-d { margin-top: 2px }
+
+/* ---------- Celular ---------- */
+@media (max-width: 860px) {
+  .solo-escritorio { display: none }
+  .head { align-items: flex-start }
+  .head-der { width: 100%; justify-content: space-between }
+}
+@media (max-width: 560px) {
+  main { padding-block: 18px 80px }
+  .card { padding: 16px }
+  .tbl-wrap { margin-inline: -16px }
+  .kpis, .kpis-3 { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .kpis > :last-child:nth-child(odd) { grid-column: 1 / -1 }
+  .kpi { padding: 12px 14px }
+  .kpi .v { font-size: 22px }
+  .mini-kpis { grid-template-columns: 1fr 1fr }
+  .mini-kpis > div:first-child { grid-column: 1 / -1 }
+  .card-h { align-items: flex-start }
+  .tabs { overflow-x: auto; flex-wrap: nowrap; max-width: 100% }
+  .tabs button { white-space: nowrap }
+  .modal-bg { align-items: flex-end; padding: 0 }
+  .modal { width: 100% !important; max-height: 92vh; border-radius: 16px 16px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) }
+  .entrega-acciones .btn { flex: 1 1 calc(50% - 8px) }
+}

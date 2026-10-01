@@ -44,6 +44,8 @@ export function DataProvider({ children }) {
   const movimientos = useCol(staff ? () => query(collection(db, 'movimientos'), orderBy('fecha', 'desc'), limit(40)) : null, [staff]);
   const usuarios = useCol(rol === 'gerente' ? () => collection(db, 'usuarios') : null, [rol]);
   const opiniones = useCol(rol ? () => collection(db, 'opiniones') : null, [rol]);
+  // Promociones: los cupones (con su código) solo los ve el gerente; el resto, las promos por cantidad.
+  const promos = useCol(rol ? () => (rol === 'gerente' ? collection(db, 'promos') : query(collection(db, 'promos'), where('tipo', '==', 'cantidad'))) : null, [rol]);
   const articulos = useCol(rol ? () => collection(db, 'articulos') : null, [rol]);
   const ventas = useCol(staff ? () => query(collection(db, 'ventas'), where('dia', '>=', sumarDias(hoy(), -7))) : null, [staff]);
   const movDespacho = useCol(staff ? () => query(collection(db, 'movDespacho'), orderBy('fecha', 'desc'), limit(40)) : null, [staff]);
@@ -71,11 +73,11 @@ export function DataProvider({ children }) {
       articulos: [...articulos.data].sort((a, b) => (a.tipo === b.tipo ? 0 : a.tipo === 'elaborado' ? -1 : 1) || (a.categoria || '').localeCompare(b.categoria || '') || a.nombre.localeCompare(b.nombre)),
       ventas: ventas.data, movDespacho: movDespacho.data,
       cierres: cierres.data, mermas: mermas.data, pedidosFijos: pedidosFijos.data,
-      miCliente: miCliente.data[0] || null, movCuenta: movCuenta.data,
+      miCliente: miCliente.data[0] || null, movCuenta: movCuenta.data, promos: promos.data,
       cargando: productos.cargando || pedidos.cargando || insumos.cargando,
       error: errores[0] || null,
     };
-  }, [productos, insumos, pedidos, ordenes, compras, clientes, actividad, movimientos, usuarios, opiniones, articulos, ventas, movDespacho, cierres, mermas, pedidosFijos, miCliente, movCuenta]);
+  }, [productos, insumos, pedidos, ordenes, compras, clientes, actividad, movimientos, usuarios, opiniones, articulos, ventas, movDespacho, cierres, mermas, pedidosFijos, miCliente, movCuenta, promos]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
