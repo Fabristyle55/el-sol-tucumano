@@ -1,10 +1,11 @@
 import { Fragment, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useData } from '../data';
 import { Modal, Pill, Vacio, Cargando, useAccion } from '../ui';
-import { ENTREGA_LABEL, TIPO_LABEL, cant, dRel, dShort, estadoDe, hhmm, aFecha, money } from '../util';
+import { CANAL_LABEL, ENTREGA_LABEL, TIPO_LABEL, cant, dRel, dShort, estadoDe, hhmm, aFecha, money } from '../util';
+import { DIAS_SEMANA } from '../../shared/negocio.js';
 import PedidoModal from '../components/PedidoModal';
 
 const FILTROS = [['activos', 'Activos'], ['pendiente', 'Por confirmar'], ['reservado', 'Reservas'], ['confirmado', 'Confirmados'], ['produccion', 'En producción'], ['listo', 'Listos'], ['entregado', 'Entregados'], ['cancelado', 'Cancelados']];
@@ -12,7 +13,9 @@ const activo = (p) => !['entregado', 'cancelado'].includes(p.estado);
 
 export default function Pedidos() {
   const { perfil } = useAuth();
-  const { pedidos, cargando } = useData();
+  const { pedidos, cargando, pedidosFijos } = useData();
+  const [repetir, setRepetir] = useState(null);
+  const [fijos, setFijos] = useState(false);
   const [params, setParams] = useSearchParams();
   const f = params.get('f') || 'activos';
   const tipo = params.get('t') || 'todos';
@@ -56,6 +59,8 @@ export default function Pedidos() {
         </div>
         <div className="row">
           <select aria-label="Tipo de cliente" value={tipo} onChange={(e) => filtro(f, e.target.value)}><option value="todos">Todos los clientes</option><option value="mayorista">Mayoristas</option><option value="minorista">Minoristas</option></select>
+          <Link className="btn" to="/reparto">Hoja de reparto</Link>
+          {g && <button className="btn" onClick={() => setFijos(true)}>Pedidos fijos <span className="badge n">{pedidosFijos.filter((x) => x.activo).length}</span></button>}
           <button className="btn primary" onClick={() => setNuevo(true)}>Cargar pedido</button>
         </div>
       </div>
@@ -68,7 +73,7 @@ export default function Pedidos() {
                 <tr>
                   <td><button className="linkbtn num" aria-expanded={abierto === p.id} onClick={() => setAbierto(abierto === p.id ? null : p.id)}>#{p.numero}</button></td>
                   <td><div style={{ fontWeight: 500 }}>{p.clienteNombre}</div><div className="muted small">{TIPO_LABEL[p.tipoCliente || 'mayorista']}{p.localidad ? ` · ${p.localidad}` : ''}</div></td>
-                  <td><span className="chip">{p.canal === 'web' ? 'Web' : 'Mostrador'}</span></td>
+                  <td><span className="chip">{CANAL_LABEL[p.canal] || p.canal}</span></td>
                   <td>{dRel(p.entrega)}{p.modoEntrega === 'retiro' && <div className="muted small">Retira en el local</div>}</td>
                   <td className="r num">{money(p.total)}</td>
                   <td><Pill e={estadoDe(p)} /></td>
@@ -81,6 +86,10 @@ export default function Pedidos() {
                       {ENTREGA_LABEL[p.modoEntrega || 'envio']} · Pago: {p.pago}{p.telefono ? ` · Tel. ${p.telefono}` : ''} · Cargado {aFecha(p.creado) ? `${dShort(aFecha(p.creado).toISOString().slice(0, 10))} ${hhmm(p.creado)}` : ''} por {p.creadoPor}
                       {p.direccion ? ` · ${p.direccion}` : ''}{p.notas ? ` · Nota: ${p.notas}` : ''}
                     </div>
+                    <div className="row" style={{ marginTop: 8 }}>
+                      <Link className="btn sm" to={`/comprobante?tipo=pedido&id=${p.id}`} target="_blank">{p.tipoCliente === 'minorista' ? 'Comprobante' : 'Remito'} PDF</Link>
+                      <button className="btn sm" onClick={() => setRepetir(p)}>Repetir pedido</button>
+                    </div>
                   </td></tr>
                 )}
               </Fragment>
@@ -91,6 +100,8 @@ export default function Pedidos() {
       {f === 'entregado' && <p className="muted small" style={{ margin: '10px 0 0' }}>Se muestran los 30 más recientes de las últimas dos semanas.</p>}
 
       {nuevo && <PedidoModal modo="mostrador" onClose={() => setNuevo(false)} />}
+      {repetir && <PedidoModal modo="mostrador" tipoInicial={repetir.tipoCliente || 'mayorista'} inicial={repetir} onClose={() => setRepetir(null)} />}
+      {fijos && <FijosModal fijos={pedidosFijos} onClose={() => setFijos(false)} />}
       {cancelar && (
         <Modal titulo={`¿Cancelar el pedido #${cancelar.numero}?`} onClose={() => setCancelar(null)}>
           <p style={{ margin: 0 }}>El pedido de {cancelar.clienteNombre} queda cancelado. Esta acción no se puede deshacer.</p>
@@ -101,5 +112,29 @@ export default function Pedidos() {
         </Modal>
       )}
     </section>
+  );
+}
+
+function FijosModal({ fijos, onClose }) {
+  const { productosPorId } = useData();
+  const [ocupado, correr] = useAccion();
+  const lista = [...fijos].sort((a, b) => a.clienteNombre.localeCompare(b.clienteNombre));
+  return (
+    <Modal titulo="Pedidos fijos de los comercios" onClose={onClose} ancho={680}>
+      <p className="muted small" style={{ margin: 0 }}>Cada comercio arma su pedido fijo desde "Mis pedidos". Todas las noches a las 20 h el sistema genera solo los pedidos del día siguiente como <b>pendientes</b>, para que los confirmes como cualquier otro.</p>
+      {lista.length ? (
+        <div className="lines">{lista.map((f) => (
+          <div className="line" key={f.id} style={{ alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0 }}><b>{f.clienteNombre}</b> {!f.activo && <Pill e={['Pausado', 'warn']} />}
+              <div className="muted small">{f.dias.map((d) => DIAS_SEMANA[d]).join(', ')} · {f.items.map((i) => `${i.cantidad} ${productosPorId[i.productoId]?.nombre || i.productoId}`).join(' · ')} · {f.pago}</div></div>
+            <button className="btn sm" disabled={ocupado} onClick={() => correr(() => api('pedido-fijo', { accion: f.activo ? 'pausar' : 'activar', clienteId: f.clienteId }), f.activo ? 'Pedido fijo pausado' : 'Pedido fijo activado')}>{f.activo ? 'Pausar' : 'Activar'}</button>
+          </div>
+        ))}</div>
+      ) : <Vacio>Ningún comercio armó un pedido fijo todavía.</Vacio>}
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <button className="btn" disabled={ocupado} onClick={() => correr(() => api('pedido-fijo', { accion: 'generar' }), (r) => (r.creados ? `Se generaron ${r.creados} pedidos fijos para mañana` : 'No había pedidos fijos nuevos para mañana'))}>Generar ahora los de mañana</button>
+        <button className="btn" onClick={onClose}>Cerrar</button>
+      </div>
+    </Modal>
   );
 }

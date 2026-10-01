@@ -4,10 +4,10 @@ import { api } from '../api';
 import { useData } from '../data';
 import { Pill, useAccion } from '../ui';
 import { OPEST, dRel, fq, hoy, manana } from '../util';
-import { explotar, reservado, r3, totalesPorProducto, vaAProduccion } from '../../shared/negocio.js';
+import { explotar, extraSugerido, reservado, r3, totalesPorProducto, vaAProduccion } from '../../shared/negocio.js';
 
 export default function Planificacion() {
-  const { pedidos, productos, productosPorId, insumosPorId, ordenes } = useData();
+  const { pedidos, productos, productosPorId, insumosPorId, ordenes, mermas } = useData();
   const [params, setParams] = useSearchParams();
   const [extra, setExtra] = useState({});
   const [ocupado, correr] = useAccion();
@@ -32,6 +32,8 @@ export default function Planificacion() {
   const falta = filas.filter((r) => r.queda < 0);
   const totalU = Object.values(prod).reduce((a, b) => a + b, 0);
 
+  const sug = Object.fromEntries(productos.map((p) => [p.id, extraSugerido(ordenes, mermas, p.id, hoy())]));
+  const haySug = Object.values(sug).some(Boolean);
   const setEx = (pid, v) => setExtra({ ...extra, [D]: { ...ex, [pid]: Math.max(0, Math.floor(+v || 0)) } });
   const generar = async () => {
     const r = await correr(() => api('generar-ordenes', { fecha: D, extra: ex }), (x) => `Se generaron ${x.ordenes} órdenes de producción para ${dRel(D).toLowerCase()}.`);
@@ -55,11 +57,12 @@ export default function Planificacion() {
             <thead><tr><th>Producto</th><th className="r">Pedidos</th><th className="r">Extra local</th><th className="r">A producir</th></tr></thead>
             <tbody>{productos.filter((p) => p.activo !== false || tot[p.id]).map((p) => (
               <tr key={p.id}><td>{p.nombre}</td><td className="r num">{tot[p.id] || '—'}</td>
-                <td className="r"><input className="qty-in num" type="number" min="0" placeholder="0" value={ex[p.id] || ''} onChange={(e) => setEx(p.id, e.target.value)} aria-label={`Extra para venta en el local de ${p.nombre}`} /></td>
+                <td className="r"><input className="qty-in num" type="number" min="0" placeholder="0" value={ex[p.id] || ''} onChange={(e) => setEx(p.id, e.target.value)} aria-label={`Extra para venta en el local de ${p.nombre}`} />
+                  {sug[p.id] && <div><button className="linkbtn small" title={`Última semana: se hornearon ${sug[p.id].producido} de más y sobraron ${sug[p.id].sobro}`} onClick={() => setEx(p.id, sug[p.id].sugerido)}>sugerido: {sug[p.id].sugerido}</button></div>}</td>
                 <td className="r num" style={{ fontWeight: 600 }}>{prod[p.id] || '—'}</td></tr>
             ))}</tbody>
           </table></div>
-          <p className="muted small" style={{ margin: '10px 0 0' }}>"Extra local" es lo que se hornea de más para vender en el despacho. Cuando el panadero termina la orden, pasa solo al stock del despacho.</p>
+          <p className="muted small" style={{ margin: '10px 0 0' }}>"Extra local" es lo que se hornea de más para vender en el despacho. Cuando el panadero termina la orden, pasa solo al stock del despacho.{haySug ? ' "Sugerido" descuenta lo que sobró en la última semana (mermas del despacho); tocalo para usarlo.' : ''}</p>
         </section>
         <section className="card">
           <div className="card-h"><h2>2 · Insumos requeridos</h2><span className="muted small">según recetas</span></div>

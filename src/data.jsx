@@ -47,6 +47,16 @@ export function DataProvider({ children }) {
   const articulos = useCol(rol ? () => collection(db, 'articulos') : null, [rol]);
   const ventas = useCol(staff ? () => query(collection(db, 'ventas'), where('dia', '>=', sumarDias(hoy(), -7))) : null, [staff]);
   const movDespacho = useCol(staff ? () => query(collection(db, 'movDespacho'), orderBy('fecha', 'desc'), limit(40)) : null, [staff]);
+  const cierres = useCol(staff ? () => query(collection(db, 'cierres'), where('dia', '>=', sumarDias(hoy(), -14))) : null, [staff]);
+  const mermas = useCol(staff ? () => query(collection(db, 'mermas'), where('dia', '>=', sumarDias(hoy(), -14))) : null, [staff]);
+  const pedidosFijos = useCol(
+    staff ? () => collection(db, 'pedidosFijos')
+      : rol === 'cliente' ? () => query(collection(db, 'pedidosFijos'), where('clienteUid', '==', perfil.uid)) : null,
+    [staff, rol, perfil?.uid],
+  );
+  // El cliente ve su propia ficha (saldo de cuenta corriente) y sus movimientos.
+  const miCliente = useCol(rol === 'cliente' ? () => query(collection(db, 'clientes'), where('uid', '==', perfil.uid)) : null, [rol, perfil?.uid]);
+  const movCuenta = useCol(rol === 'cliente' ? () => query(collection(db, 'movCuenta'), where('clienteUid', '==', perfil.uid)) : null, [rol, perfil?.uid]);
 
   const value = useMemo(() => {
     const prods = [...productos.data].sort((a, b) => (a.orden ?? 99) - (b.orden ?? 99) || a.nombre.localeCompare(b.nombre));
@@ -60,10 +70,12 @@ export function DataProvider({ children }) {
       actividad: actividad.data, movimientos: movimientos.data, usuarios: usuarios.data, opiniones: opiniones.data,
       articulos: [...articulos.data].sort((a, b) => (a.tipo === b.tipo ? 0 : a.tipo === 'elaborado' ? -1 : 1) || (a.categoria || '').localeCompare(b.categoria || '') || a.nombre.localeCompare(b.nombre)),
       ventas: ventas.data, movDespacho: movDespacho.data,
+      cierres: cierres.data, mermas: mermas.data, pedidosFijos: pedidosFijos.data,
+      miCliente: miCliente.data[0] || null, movCuenta: movCuenta.data,
       cargando: productos.cargando || pedidos.cargando || insumos.cargando,
       error: errores[0] || null,
     };
-  }, [productos, insumos, pedidos, ordenes, compras, clientes, actividad, movimientos, usuarios, opiniones, articulos, ventas, movDespacho]);
+  }, [productos, insumos, pedidos, ordenes, compras, clientes, actividad, movimientos, usuarios, opiniones, articulos, ventas, movDespacho, cierres, mermas, pedidosFijos, miCliente, movCuenta]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

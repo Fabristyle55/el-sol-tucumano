@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useData } from '../data';
 import { useAuth } from '../auth';
-import { precioPara, precioArticulo } from '../../shared/negocio.js';
+import { precioPara, precioArticulo, precioBaseArticulo } from '../../shared/negocio.js';
 import { Stepper, Cargando } from '../ui';
 import { cant, money } from '../util';
 import PedidoModal from '../components/PedidoModal';
@@ -33,7 +33,10 @@ export default function Catalogo() {
   const { productos, productosPorId, articulos, opiniones, cargando } = useData();
   const { perfil } = useAuth();
   const tipo = perfil.tipoCliente || 'mayorista';
-  const [carrito, setCarrito] = useState({});
+  const location = useLocation();
+  // "Repetir pedido" llega con el carrito armado desde Mis pedidos.
+  const [carrito, setCarrito] = useState(() => location.state?.carrito || {});
+  const repetido = !!location.state?.carrito;
   const [checkout, setCheckout] = useState(false);
   const [opinar, setOpinar] = useState(null);
   const [agregado, setAgregado] = useState(null);
@@ -63,6 +66,7 @@ export default function Catalogo() {
   if (cargando) return <Cargando />;
   return (
     <>
+      {repetido && n > 0 && <div className="note ok">Cargamos los productos de tu pedido anterior. Revisá las cantidades y tocá "{minorista ? 'Ver reserva' : 'Ver pedido'}".</div>}
       <div className="cat">
         {activos.map((p) => {
           const prodRef = minorista ? (p.productoId ? productosPorId[p.productoId] : null) : p;
@@ -76,6 +80,7 @@ export default function Catalogo() {
                 {minorista ? <ImagenArticulo articulo={p} productosPorId={productosPorId} /> : <ImagenProducto producto={p} />}
                 {q > 0 && <span className="ph-cant" key={q}>{cant(q, p.unidad)}</span>}
                 {minorista && <span className={`ph-tag ${sinStock ? 'rojo' : ''}`}>{sinStock ? 'Sin stock' : `Hay ${cant(p.stock, p.unidad)}`}</span>}
+                {minorista && p.oferta > 0 && !sinStock && <span className="ph-oferta">Oferta -{p.oferta}%</span>}
               </div>
               <div className="in">
                 <b>{p.nombre}</b>
@@ -83,7 +88,7 @@ export default function Catalogo() {
                   ? <button type="button" className="rating-btn" onClick={() => setOpinar(prodRef)} title="Ver opiniones"><Estrellas valor={r?.promedio || 0} cantidad={r?.n || 0} /></button>
                   : <span className="small muted">{p.categoria}</span>}
                 <div className="prod-pie">
-                  <span className="num precio">{money(precio(p))}{kg ? '/kg' : ''}</span>
+                  <span className="num precio">{minorista && p.oferta > 0 && <s className="muted small" style={{ fontWeight: 400, marginRight: 6 }}>{money(precioBaseArticulo(p, productosPorId))}</s>}{money(precio(p))}{kg ? '/kg' : ''}</span>
                   {q === 0
                     ? <button className="btn sm primary agregar" disabled={sinStock} onClick={() => cambiar(p, kg ? 0.25 : 1)}>{sinStock ? 'Agotado' : 'Agregar'}</button>
                     : <Stepper id={`cq-${p.id}`} value={q} paso={kg ? 0.25 : 1} max={minorista ? p.stock : undefined} label={`Cantidad de ${p.nombre}`} onChange={(v) => cambiar(p, v)} />}

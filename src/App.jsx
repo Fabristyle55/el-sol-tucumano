@@ -17,10 +17,17 @@ import Catalogo from './pages/Catalogo';
 import Productos from './pages/Productos';
 import Despacho from './pages/Despacho';
 import MisPedidos from './pages/MisPedidos';
+import Cuentas from './pages/Cuentas';
+import Reportes from './pages/Reportes';
+import Historial from './pages/Historial';
+import Recorrido from './pages/Recorrido';
+import Reparto from './pages/Reparto';
+import Comprobante from './pages/Comprobante';
 
 const PAGINAS = {
   panel: Panel, pedidos: Pedidos, planificacion: Planificacion, produccion: Produccion, stock: Stock,
   despacho: Despacho, productos: Productos, recetas: Recetas, compras: Compras, usuarios: Usuarios, catalogo: Catalogo, 'mis-pedidos': MisPedidos,
+  cuentas: Cuentas, reportes: Reportes, historial: Historial, recorrido: Recorrido, reparto: Reparto, comprobante: Comprobante,
 };
 
 export default function App() {
@@ -44,7 +51,7 @@ export default function App() {
     <DataProvider>
       <Routes>
         <Route element={<Layout />}>
-          {vistas.map((v) => {
+          {[...vistas, ...(ROLES[perfil.rol].rutas || [])].map((v) => {
             const P = PAGINAS[v];
             return <Route key={v} path={`/${v}`} element={<P />} />;
           })}

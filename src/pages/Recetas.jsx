@@ -5,11 +5,13 @@ import { useAuth } from '../auth';
 import { useData } from '../data';
 import { Modal, useToast } from '../ui';
 import { fq, money } from '../util';
-import { r3 } from '../../shared/negocio.js';
+import { costoProducto, margen, r3 } from '../../shared/negocio.js';
+import { anotar } from '../bitacora';
 
 export default function Recetas() {
   const { perfil } = useAuth();
   const { productos, insumos, insumosPorId } = useData();
+  const [verCostos, setVerCostos] = useState(false);
   const toast = useToast();
   const [sel, setSel] = useState(null);
   const [calc, setCalc] = useState(10);
@@ -21,9 +23,14 @@ export default function Recetas() {
 
   const receta = p.receta || {};
   const guardar = async (cambios, msg) => {
-    try { await updateDoc(doc(db, 'productos', p.id), cambios); if (msg) toast(msg); }
-    catch (e) { toast(`No se pudo guardar: ${e.code || e.message}`, 'error'); }
+    try {
+      await updateDoc(doc(db, 'productos', p.id), cambios);
+      if (msg) { toast(msg); anotar(perfil, `${msg}: ${p.nombre}`); }
+    } catch (e) { toast(`No se pudo guardar: ${e.code || e.message}`, 'error'); }
   };
+  const cp = costoProducto(p, insumosPorId);
+  const mMay = margen(p.precio, cp.costo);
+  const mMin = margen(p.precioMinorista || p.precio, cp.costo);
 
   return (
     <div className="recipes">
@@ -47,7 +54,7 @@ export default function Recetas() {
             {!edit && <span className="num muted">{money(p.precio)} mayorista · {money(p.precioMinorista || p.precio)} minorista</span>}
           </div>
           <div className="tbl-wrap"><table>
-            <thead><tr><th>Insumo</th><th className="r">Cantidad</th><th>Unidad</th>{edit && <th />}</tr></thead>
+            <thead><tr><th>Insumo</th><th className="r">Cantidad</th><th>Unidad</th>{edit && <th className="r">Costo</th>}{edit && <th />}</tr></thead>
             <tbody>{Object.entries(receta).map(([iid, x]) => {
               const i = insumosPorId[iid];
               return (
@@ -57,11 +64,19 @@ export default function Recetas() {
                       onBlur={(e) => { const v = r3(Math.max(0, +e.target.value || 0)); if (v !== x) guardar({ [`receta.${iid}`]: v }, 'Receta actualizada'); }} />
                     : <span className="num">{fq(x, i?.unidad)}</span>}</td>
                   <td className="muted">{i?.unidad}</td>
+                  {edit && <td className="r num muted">{i?.costo > 0 ? money(x * i.costo) : '—'}</td>}
                   {edit && <td className="r"><button className="btn sm ghost-bad" onClick={() => guardar({ [`receta.${iid}`]: deleteField() }, `Se quitó ${i?.nombre}`)}>Quitar</button></td>}
                 </tr>
               );
             })}</tbody>
           </table></div>
+          {edit && (
+            <div className="costos">
+              <div><span className="lbl">Costo por unidad</span><b className="num">{money(cp.costo)}</b>{!cp.completo && <span className="small" style={{ color: 'var(--warn)' }}>Faltan costos de insumos</span>}</div>
+              <div><span className="lbl">Margen mayorista</span><b className="num" style={{ color: `var(--${mMay.pct < 25 ? 'bad' : 'ok'})` }}>{mMay.pct} %</b><span className="small muted num">{money(mMay.monto)} por unidad</span></div>
+              <div><span className="lbl">Margen minorista</span><b className="num" style={{ color: `var(--${mMin.pct < 25 ? 'bad' : 'ok'})` }}>{mMin.pct} %</b><span className="small muted num">{money(mMin.monto)} por unidad</span></div>
+            </div>
+          )}
           {edit && (
             <div className="row" style={{ marginTop: 12 }}>
               <select value={agregar} onChange={(e) => setAgregar(e.target.value)} aria-label="Insumo a agregar">
@@ -72,17 +87,39 @@ export default function Recetas() {
             </div>
           )}
         </section>
+        {edit && (
+          <section className="card">
+            <div className="card-h"><div><h2>Costo y margen de todos los productos</h2><p className="muted small" style={{ margin: '4px 0 0' }}>Calculado con la receta y el costo de cada insumo (se edita en Stock).</p></div>
+              <button className="btn sm" onClick={() => setVerCostos(!verCostos)}>{verCostos ? 'Ocultar' : 'Ver tabla'}</button></div>
+            {verCostos && <TablaCostos productos={productos} insumosPorId={insumosPorId} />}
+          </section>
+        )}
         <section className="card">
           <div className="card-h"><h2>Calculadora de tanda</h2><div className="row"><label htmlFor="calc" className="small">Unidades</label><input id="calc" className="qty-in num" type="number" min="1" value={calc} onChange={(e) => setCalc(Math.max(1, Math.floor(+e.target.value || 1)))} /></div></div>
           <div className="lines">{Object.entries(receta).map(([iid, x]) => <div className="line" key={iid}><span>{insumosPorId[iid]?.nombre}</span><span className="num">{fq(r3(x * calc), insumosPorId[iid]?.unidad)} {insumosPorId[iid]?.unidad}</span></div>)}</div>
         </section>
       </div>
-      {nuevo && <NuevoProducto onClose={() => setNuevo(false)} onCreado={(id) => setSel(id)} cantidad={productos.length} />}
+      {nuevo && <NuevoProducto perfil={perfil} onClose={() => setNuevo(false)} onCreado={(id) => setSel(id)} cantidad={productos.length} />}
     </div>
   );
 }
 
-function NuevoProducto({ onClose, onCreado, cantidad }) {
+function TablaCostos({ productos, insumosPorId }) {
+  const filas = productos.map((p) => { const c = costoProducto(p, insumosPorId); return { p, c, may: margen(p.precio, c.costo), min: margen(p.precioMinorista || p.precio, c.costo) }; })
+    .sort((a, b) => a.may.pct - b.may.pct);
+  return (
+    <div className="tbl-wrap"><table>
+      <thead><tr><th>Producto</th><th className="r">Costo</th><th className="r">Precio mayorista</th><th className="r">Margen</th><th className="r">Precio minorista</th><th className="r">Margen</th></tr></thead>
+      <tbody>{filas.map(({ p, c, may, min }) => (
+        <tr key={p.id}><td>{p.nombre}{!c.completo && <span className="muted small"> · costo incompleto</span>}</td><td className="r num">{money(c.costo)}</td>
+          <td className="r num">{money(p.precio)}</td><td className="r"><span className={`pill ${may.pct < 25 ? 'bad' : may.pct < 40 ? 'warn' : 'ok'}`}>{may.pct} %</span></td>
+          <td className="r num">{money(p.precioMinorista || p.precio)}</td><td className="r"><span className={`pill ${min.pct < 25 ? 'bad' : min.pct < 40 ? 'warn' : 'ok'}`}>{min.pct} %</span></td></tr>
+      ))}</tbody>
+    </table></div>
+  );
+}
+
+function NuevoProducto({ perfil, onClose, onCreado, cantidad }) {
   const toast = useToast();
   const [nombre, setNombre] = useState('');
   const [precio, setPrecio] = useState('');
@@ -91,7 +128,7 @@ function NuevoProducto({ onClose, onCreado, cantidad }) {
     if (!nombre.trim() || !(+precio > 0)) { toast('Completá nombre y precio.', 'error'); return; }
     try {
       const ref = await addDoc(collection(db, 'productos'), { nombre: nombre.trim(), precio: Math.round(+precio), precioMinorista: Math.round(+precioMin || 0), activo: true, receta: {}, orden: cantidad + 1, creado: serverTimestamp() });
-      toast('Producto creado. Ahora cargá su receta.'); onCreado(ref.id); onClose();
+      toast('Producto creado. Ahora cargá su receta.'); anotar(perfil, `Creó el producto ${nombre.trim()}`); onCreado(ref.id); onClose();
     } catch (e) { toast(`No se pudo crear: ${e.code || e.message}`, 'error'); }
   };
   return (

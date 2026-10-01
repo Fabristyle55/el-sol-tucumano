@@ -19,11 +19,81 @@ export const CATEGORIAS_DESPACHO = ['Panificados', 'Lácteos', 'Bebidas', 'Fiamb
 export const PAGOS_DESPACHO = ['Efectivo', 'Transferencia', 'Débito', 'Crédito', 'Mercado Pago'];
 /** Id del artículo del despacho que corresponde a un producto elaborado. */
 export const idArticulo = (productoId) => `e-${productoId}`;
-/** Precio de un artículo del despacho: los elaborados usan el precio minorista del producto. */
-export function precioArticulo(articulo, productosPorId = {}) {
+/** Precio de lista de un artículo del despacho: los elaborados usan el precio minorista del producto. */
+export function precioBaseArticulo(articulo, productosPorId = {}) {
   if (articulo?.productoId) return precioPara(productosPorId[articulo.productoId] || {}, 'minorista') || articulo.precio || 0;
   return articulo?.precio || 0;
 }
+/** Precio de venta de un artículo del despacho, con el descuento de oferta si tiene. */
+export function precioArticulo(articulo, productosPorId = {}) {
+  const base = precioBaseArticulo(articulo, productosPorId);
+  const oferta = Math.min(70, Math.max(0, Math.round(Number(articulo?.oferta) || 0)));
+  return oferta ? Math.round((base * (100 - oferta)) / 100) : base;
+}
+
+// ---------- Vencimientos (reventa) ----------
+export const DIAS_AVISO_VENCE = 3;
+const utc = (iso) => { const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+/** Días que van de la fecha a a la fecha b (negativo si b es anterior). */
+export const diasEntre = (a, b) => Math.round((utc(b) - utc(a)) / 864e5);
+/** Día de la semana de una fecha 'AAAA-MM-DD' (0 = domingo). */
+export const diaSemana = (iso) => new Date(utc(iso)).getUTCDay();
+export const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+/** Estado de vencimiento de un artículo con stock: null, 'ok', 'pronto' o 'vencido'. */
+export function vencimiento(articulo, hoyISO) {
+  if (!articulo?.vence || !esFecha(articulo.vence) || !((articulo.stock || 0) > 0)) return null;
+  const dias = diasEntre(hoyISO, articulo.vence);
+  return { dias, estado: dias < 0 ? 'vencido' : dias <= DIAS_AVISO_VENCE ? 'pronto' : 'ok' };
+}
+
+// ---------- Mermas ----------
+export const MOTIVOS_MERMA = ['No se vendió', 'Vencido', 'Roto o dañado', 'Otro'];
+/**
+ * Sugerencia de "extra para el local" a partir de la última semana:
+ * lo que se horneó de más menos lo que sobró, promediado por día de producción.
+ */
+export function extraSugerido(ordenes, mermas, productoId, hoyISO, dias = 7) {
+  const desde = sumarDias(hoyISO, -dias);
+  const ops = ordenes.filter((o) => o.productoId === productoId && o.fecha >= desde && o.fecha <= hoyISO && o.estado === 'terminada' && o.extra > 0);
+  const producido = ops.reduce((a, o) => a + o.extra, 0);
+  const sobro = r3(mermas.filter((m) => m.productoId === productoId && m.dia >= desde && m.dia <= hoyISO).reduce((a, m) => a + m.cantidad, 0));
+  if (!producido && !sobro) return null;
+  const nDias = Math.max(1, new Set(ops.map((o) => o.fecha)).size);
+  return { producido, sobro, sugerido: Math.max(0, Math.round((producido - sobro) / nDias)) };
+}
+
+// ---------- Caja del despacho ----------
+/** Totales por forma de pago de un día: ventas no anuladas + reservas retiradas. */
+export function resumenCaja(ventas, reservas = []) {
+  const porPago = {};
+  for (const v of ventas) if (!v.anulada) porPago[v.pago] = (porPago[v.pago] || 0) + (v.total || 0);
+  for (const p of reservas) porPago[p.pago] = (porPago[p.pago] || 0) + (p.total || 0);
+  const total = Object.values(porPago).reduce((a, b) => a + b, 0);
+  return { porPago, efectivo: porPago.Efectivo || 0, total };
+}
+
+// ---------- Cuenta corriente (mayoristas) ----------
+export const PLAZO_CC = 15;
+/** Estado de la cuenta de un cliente: 'al-dia', 'debe' o 'vencida' (deuda más vieja que el plazo). */
+export function estadoCuenta(cliente, hoyISO) {
+  const saldo = Math.round(cliente?.saldo || 0);
+  const plazo = cliente?.plazoDias || PLAZO_CC;
+  if (saldo <= 0) return { saldo, dias: 0, plazo, estado: 'al-dia' };
+  const dias = cliente.deudaDesde && esFecha(cliente.deudaDesde) ? diasEntre(cliente.deudaDesde, hoyISO) : 0;
+  return { saldo, dias, plazo, estado: dias > plazo ? 'vencida' : 'debe' };
+}
+
+// ---------- Costos ----------
+/** Costo de una unidad de producto según su receta y el costo de cada insumo. */
+export function costoProducto(producto, insumosPorId) {
+  let total = 0; let completo = true;
+  for (const [iid, q] of Object.entries(producto?.receta || {})) {
+    const c = Number(insumosPorId[iid]?.costo);
+    if (c > 0) total += q * c; else completo = false;
+  }
+  return { costo: Math.round(total), completo };
+}
+export const margen = (precio, costo) => ({ monto: Math.round((precio || 0) - costo), pct: precio > 0 ? Math.round(((precio - costo) / precio) * 100) : 0 });
 /** Cantidad válida según la unidad: enteros para "u", hasta 3 decimales para "kg". */
 export function cantidadValida(n, unidad) {
   const x = Number(n);

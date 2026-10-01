@@ -74,3 +74,50 @@ test('las reservas minoristas no entran en la producción', () => {
   });
   assert.equal(h.proyectado, 100);
 });
+
+// ---------- Mejoras: ofertas, vencimientos, caja, cuenta corriente, costos, mermas ----------
+import { vencimiento, resumenCaja, estadoCuenta, costoProducto, margen, extraSugerido, diaSemana, diasEntre } from '../shared/negocio.js';
+
+test('la oferta descuenta el porcentaje y se limita a 70 %', () => {
+  assert.equal(precioArticulo({ precio: 1000, oferta: 20 }), 800);
+  assert.equal(precioArticulo({ precio: 1000, oferta: 95 }), 300);
+  assert.equal(precioArticulo({ precio: 1000 }), 1000);
+});
+
+test('vencimiento avisa 3 días antes y solo si hay stock', () => {
+  assert.equal(vencimiento({ stock: 2, vence: '2026-10-04' }, '2026-10-01').estado, 'pronto');
+  assert.equal(vencimiento({ stock: 2, vence: '2026-10-09' }, '2026-10-01').estado, 'ok');
+  assert.equal(vencimiento({ stock: 2, vence: '2026-09-30' }, '2026-10-01').estado, 'vencido');
+  assert.equal(vencimiento({ stock: 0, vence: '2026-09-30' }, '2026-10-01'), null);
+});
+
+test('resumen de caja suma por forma de pago sin las anuladas', () => {
+  const r = resumenCaja([{ pago: 'Efectivo', total: 1000 }, { pago: 'Efectivo', total: 500, anulada: true }, { pago: 'Débito', total: 300 }], [{ pago: 'Efectivo', total: 200 }]);
+  assert.equal(r.efectivo, 1200); assert.equal(r.total, 1500);
+});
+
+test('la cuenta corriente vence después del plazo', () => {
+  assert.equal(estadoCuenta({ saldo: 0 }, '2026-10-01').estado, 'al-dia');
+  assert.equal(estadoCuenta({ saldo: 5000, deudaDesde: '2026-09-25' }, '2026-10-01').estado, 'debe');
+  assert.equal(estadoCuenta({ saldo: 5000, deudaDesde: '2026-09-01' }, '2026-10-01').estado, 'vencida');
+  assert.equal(estadoCuenta({ saldo: 5000, deudaDesde: '2026-09-25', plazoDias: 3 }, '2026-10-01').estado, 'vencida');
+});
+
+test('costo y margen por producto con la receta', () => {
+  const ins = { h: { costo: 1000 }, l: { costo: 4000 } };
+  assert.deepEqual(costoProducto({ receta: { h: 0.5, l: 0.05 } }, ins), { costo: 700, completo: true });
+  assert.equal(costoProducto({ receta: { h: 0.5, x: 1 } }, ins).completo, false);
+  assert.deepEqual(margen(1000, 700), { monto: 300, pct: 30 });
+});
+
+test('extra sugerido descuenta lo que sobró', () => {
+  const ops = [{ productoId: 'pf', fecha: '2026-09-29', estado: 'terminada', extra: 10 }, { productoId: 'pf', fecha: '2026-09-30', estado: 'terminada', extra: 10 }];
+  const mermas = [{ productoId: 'pf', dia: '2026-09-29', cantidad: 4 }, { productoId: 'pf', dia: '2026-09-30', cantidad: 2 }];
+  assert.deepEqual(extraSugerido(ops, mermas, 'pf', '2026-10-01'), { producido: 20, sobro: 6, sugerido: 7 });
+  assert.equal(extraSugerido([], [], 'pf', '2026-10-01'), null);
+});
+
+test('fechas: día de la semana y diferencia en días', () => {
+  assert.equal(diaSemana('2026-10-01'), 4); // jueves
+  assert.equal(diasEntre('2026-09-28', '2026-10-01'), 3);
+});

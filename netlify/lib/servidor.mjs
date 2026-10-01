@@ -111,3 +111,81 @@ export async function notificar(evento, datos) {
 }
 
 export const texto = (v, max = 200) => String(v ?? '').trim().slice(0, max);
+
+// ---------------------------------------------------------------------------
+// Avisos por mail a los clientes (opcional).
+// Se activan configurando en Netlify RESEND_API_KEY (cuenta gratis en resend.com)
+// y MAIL_FROM (por ejemplo "El Sol Siciliano <pedidos@tudominio.com>").
+// Sin esas variables no se envía nada y todo funciona igual.
+// ---------------------------------------------------------------------------
+export async function enviarMail({ para, asunto, html }) {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM || 'El Sol Siciliano <onboarding@resend.dev>';
+  if (!key || !para) return false;
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: [para], subject: asunto, html }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!r.ok) console.warn('No se pudo enviar el mail:', r.status, await r.text().catch(() => ''));
+    return r.ok;
+  } catch (e) {
+    console.warn('No se pudo enviar el mail:', e.message);
+    return false;
+  }
+}
+
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pesos = (n) => '$' + Math.round(n || 0).toLocaleString('es-AR');
+const cantTxt = (n, u) => (u === 'kg' ? `${n} kg` : `${n}`);
+
+function plantilla(titulo, intro, pedido) {
+  const filas = (pedido.items || []).map((i) => `<tr><td style="padding:6px 0;border-bottom:1px solid #eee">${esc(cantTxt(i.cantidad, i.unidad))} × ${esc(i.nombre)}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right">${pesos(i.cantidad * i.precio)}</td></tr>`).join('');
+  const sitio = process.env.URL || '';
+  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:auto;color:#121814">
+  <div style="height:4px;background:linear-gradient(90deg,#167B41 0 33%,#fff 33% 66%,#C42A22 66%)"></div>
+  <h2 style="margin:20px 0 6px">${esc(titulo)}</h2>
+  <p style="margin:0 0 16px;color:#3a433d">${intro}</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">${filas}
+  <tr><td style="padding:10px 0;font-weight:bold">Total</td><td style="padding:10px 0;text-align:right;font-weight:bold">${pesos(pedido.total)}</td></tr></table>
+  ${sitio ? `<p style="margin:20px 0"><a href="${sitio}/mis-pedidos" style="background:#167B41;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">Ver mis pedidos</a></p>` : ''}
+  <p style="color:#69726c;font-size:12px;margin-top:24px">Panificación El Sol Siciliano · Tucumán</p></div>`;
+}
+
+/** Busca el mail del cliente de un pedido (ficha del cliente o su usuario web). */
+async function mailDelCliente(p) {
+  const base = db();
+  if (p.clienteId) {
+    const c = await base.doc(`clientes/${p.clienteId}`).get();
+    if (c.exists && c.data().email) return c.data().email;
+  }
+  if (p.clienteUid) {
+    const u = await base.doc(`usuarios/${p.clienteUid}`).get();
+    if (u.exists && u.data().email) return u.data().email;
+  }
+  return null;
+}
+
+/** Aviso al cliente según el evento del pedido. Nunca hace fallar la operación. */
+export async function avisarCliente(evento, pedido) {
+  try {
+    if (!process.env.RESEND_API_KEY) return;
+    const para = await mailDelCliente(pedido);
+    if (!para) return;
+    const n = pedido.numero;
+    const fecha = pedido.entrega ? pedido.entrega.split('-').reverse().join('/') : '';
+    const textos = {
+      recibido: [`Recibimos tu pedido #${n}`, `Hola ${esc(pedido.clienteNombre)}, recibimos tu pedido para el ${fecha}. Te avisamos cuando lo confirmemos.`],
+      confirmado: [`Pedido #${n} confirmado`, `Tu pedido para el ${fecha} está confirmado y entra en la producción del día.`],
+      reserva: [`Reserva #${n} recibida`, `Te guardamos estos productos en el despacho para el ${fecha}. Te avisamos cuando esté lista.`],
+      'reserva-lista': [`Tu reserva #${n} está lista`, 'Ya preparamos tu reserva. Podés pasar a retirarla por el despacho.'],
+    };
+    const t = textos[evento];
+    if (!t) return;
+    await enviarMail({ para, asunto: `${t[0]} · El Sol Siciliano`, html: plantilla(t[0], t[1], pedido) });
+  } catch (e) {
+    console.warn('Aviso por mail no enviado:', e.message);
+  }
+}

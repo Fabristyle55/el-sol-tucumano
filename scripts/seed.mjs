@@ -8,7 +8,7 @@
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
-import { fechaAR, sumarDias } from '../shared/negocio.js';
+import { fechaAR, sumarDias, explotar } from '../shared/negocio.js';
 
 const { FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY } = process.env;
 if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
@@ -221,7 +221,150 @@ async function main() {
     }
   }
 
+  await mejoras();
   console.log('\nListo. Iniciá la app con "npm run dev" y entrá con gerente@elsol.demo / ' + PASS);
 }
 
 main().catch((e) => { console.error('\n✗ Error:', e.message); process.exit(1); });
+
+
+// ---------------------------------------------------------------------------
+// Datos de las mejoras: costos de insumos, vencimientos y ofertas, mermas,
+// cierres de caja, cuenta corriente, pedidos fijos e historial para los reportes.
+// Todo es idempotente: no pisa lo que ya se cargó desde el sistema.
+// ---------------------------------------------------------------------------
+const COSTOS = { h000: 900, h0000: 1100, lev: 6000, sal: 800, azu: 1300, gra: 3500, man: 9000, hue: 250, lec: 1300, ace: 2800, tom: 2200, bol: 25 };
+
+// Generador pseudoaleatorio con semilla (siempre los mismos datos de ejemplo).
+function azar(semilla) { let x = semilla; return () => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; }; }
+
+async function enLotes(ops) {
+  for (let k = 0; k < ops.length; k += 400) {
+    const b = db.batch();
+    ops.slice(k, k + 400).forEach(([ref, datos]) => b.set(ref, datos));
+    await b.commit();
+  }
+}
+
+async function mejoras() {
+  const H = fechaAR(0);
+  const vacia = async (col) => (await db.collection(col).limit(1).get()).empty;
+
+  // Costos de insumos (solo si todavía no tienen)
+  const ins = await db.collection('insumos').get();
+  const bc = db.batch(); let nc = 0;
+  ins.docs.forEach((d) => { if (!(d.data().costo > 0) && COSTOS[d.id]) { bc.update(d.ref, { costo: COSTOS[d.id] }); nc++; } });
+  if (nc) await bc.commit();
+  console.log(`✓ Costos de ${nc} insumos`);
+
+  // Vencimientos y una oferta de ejemplo en la reventa
+  const vences = { 'r-yogur': [2, 0], 'r-jamon': [1, 20], 'r-leche': [6, 0], 'r-queso': [9, 0], 'r-mermelada': [-1, 0] };
+  for (const [id, [dias, oferta]] of Object.entries(vences)) {
+    const ref = db.doc(`articulos/${id}`); const a = await ref.get();
+    if (a.exists && !a.data().vence) await ref.update({ vence: sumarDias(H, dias), ...(oferta ? { oferta } : {}) });
+  }
+  console.log('✓ Vencimientos y ofertas de ejemplo');
+
+  // Mermas de la última semana y órdenes terminadas con extra para el local
+  if (await vacia('mermas')) {
+    const r = azar(7); const ops = [];
+    for (let k = 1; k <= 6; k++) {
+      const dia = sumarDias(H, -k);
+      ops.push([db.collection('mermas').doc(), { articuloId: 'e-pf', articuloNombre: 'Pan francés x1kg', productoId: 'pf', unidad: 'u', cantidad: 3 + Math.floor(r() * 3), motivo: 'No se vendió', nota: '', valor: 0, dia, fecha: new Date(`${dia}T21:00:00-03:00`), usuario: 'Mostrador (demo)' }]);
+      ops.push([db.collection('mermas').doc(), { articuloId: 'e-v6', articuloNombre: 'Viena x6u', productoId: 'v6', unidad: 'u', cantidad: 1 + Math.floor(r() * 2), motivo: 'No se vendió', nota: '', valor: 0, dia, fecha: new Date(`${dia}T21:00:00-03:00`), usuario: 'Mostrador (demo)' }]);
+      ops.push([db.collection('ordenes').doc(), { numero: 100 + k * 2, fecha: dia, productoId: 'pf', productoNombre: 'Pan francés x1kg', cantidad: 12, extra: 12, insumos: {}, estado: 'terminada', pedidos: [], creadaPor: 'Datos de ejemplo' }]);
+      ops.push([db.collection('ordenes').doc(), { numero: 101 + k * 2, fecha: dia, productoId: 'v6', productoNombre: 'Viena x6u', cantidad: 6, extra: 6, insumos: {}, estado: 'terminada', pedidos: [], creadaPor: 'Datos de ejemplo' }]);
+    }
+    ops.push([db.collection('mermas').doc(), { articuloId: 'r-leche', articuloNombre: 'Leche entera 1 l', productoId: null, unidad: 'u', cantidad: 2, motivo: 'Vencido', nota: '', valor: 3000, dia: sumarDias(H, -2), fecha: new Date(), usuario: 'Mostrador (demo)' }]);
+    ops.forEach(([, d]) => { if (d.productoId === 'pf' && d.motivo) d.valor = d.cantidad * 3000; if (d.productoId === 'v6' && d.motivo) d.valor = d.cantidad * 1400; });
+    await enLotes(ops);
+    console.log('✓ Mermas de la última semana');
+  }
+
+  // Cierres de caja de los días anteriores
+  if (await vacia('cierres')) {
+    await enLotes([
+      [db.doc(`cierres/${sumarDias(H, -1)}`), { dia: sumarDias(H, -1), fondo: 20000, efectivo: 61800, esperado: 81800, contado: 81800, diferencia: 0, total: 112400, porPago: { Efectivo: 61800, Débito: 28600, 'Mercado Pago': 22000 }, ventas: 21, reservas: 2, notas: '', cerradoPor: 'Mostrador (demo)', fecha: new Date(`${sumarDias(H, -1)}T21:05:00-03:00`) }],
+      [db.doc(`cierres/${sumarDias(H, -2)}`), { dia: sumarDias(H, -2), fondo: 20000, efectivo: 54300, esperado: 74300, contado: 73800, diferencia: -500, total: 98700, porPago: { Efectivo: 54300, Transferencia: 18400, Débito: 26000 }, ventas: 19, reservas: 1, notas: 'Faltó cambio de un billete', cerradoPor: 'Mostrador (demo)', fecha: new Date(`${sumarDias(H, -2)}T21:10:00-03:00`) }],
+    ]);
+    console.log('✓ Cierres de caja de ejemplo');
+  }
+
+  // Cuenta corriente: dos comercios con saldo (uno vencido)
+  if (await vacia('movCuenta')) {
+    const cuentas = [
+      ['c2', 'Despensa La Esquina', [[-22, 'cargo', 52600, 'Pedido #921'], [-15, 'cargo', 48900, 'Pedido #934'], [-10, 'pago', 15100, 'Pago en efectivo']]],
+      ['c3', 'Minimercado San Cayetano', [[-20, 'cargo', 61000, 'Pedido #925'], [-12, 'pago', 61000, 'Pago en transferencia'], [-6, 'cargo', 45200, 'Pedido #941']]],
+    ];
+    const ops = [];
+    for (const [cid, nombre, movs] of cuentas) {
+      let saldo = 0; let desde = null;
+      for (const [d, tipo, monto, detalle] of movs) {
+        const antes = saldo; saldo += tipo === 'cargo' ? monto : -monto;
+        if (tipo === 'cargo' && antes <= 0) desde = sumarDias(H, d);
+        if (saldo <= 0) desde = null;
+        ops.push([db.collection('movCuenta').doc(), { clienteId: cid, clienteUid: null, clienteNombre: nombre, tipo, monto, detalle, saldo, dia: sumarDias(H, d), fecha: new Date(`${sumarDias(H, d)}T12:00:00-03:00`), usuario: 'Gerente (demo)', ...(tipo === 'pago' ? { medio: detalle.includes('transf') ? 'Transferencia' : 'Efectivo' } : {}) }]);
+      }
+      await db.doc(`clientes/${cid}`).set({ saldo, ...(desde ? { deudaDesde: desde } : {}) }, { merge: true });
+    }
+    await enLotes(ops);
+    console.log('✓ Cuenta corriente de ejemplo');
+  }
+
+  // Pedido fijo del cliente de prueba (lunes, miércoles y viernes)
+  const fijo = db.doc('pedidosFijos/c1');
+  if (!(await fijo.get()).exists) {
+    const c1 = (await db.doc('clientes/c1').get()).data() || {};
+    await fijo.set({ clienteId: 'c1', clienteUid: c1.uid || null, clienteNombre: 'Almacén Don Pedro', dias: [1, 3, 5], items: [{ productoId: 'pf', cantidad: 10 }, { productoId: 'v6', cantidad: 6 }], pago: 'Efectivo', modoEntrega: 'envio', activo: true, actualizado: new Date(), actualizadoPor: 'Datos de ejemplo' });
+    console.log('✓ Pedido fijo de ejemplo');
+  }
+
+  // Historial de 6 meses para los reportes (pedidos entregados, ventas del despacho y consumo de insumos)
+  const marca = db.doc('contadores/historico');
+  if (!(await marca.get()).exists) {
+    const r = azar(42); const ops = []; const prods = Object.fromEntries(PRODUCTOS.map(([id, nombre, , precio, precioMin, receta]) => [id, { nombre, precio, precioMin, receta }]));
+    const consumoMes = {};
+    let n = 100;
+    for (let k = 180; k >= 15; k--) {
+      const dia = sumarDias(H, -k);
+      if (diaSemanaSeed(dia) === 0) continue; // domingos cerrado
+      const mes = dia.slice(0, 7);
+      // 2 a 4 pedidos mayoristas entregados por día
+      const nped = 2 + Math.floor(r() * 3);
+      for (let j = 0; j < nped; j++) {
+        const [cid, nombre, localidad] = CLIENTES[Math.floor(r() * CLIENTES.length)];
+        const its = {}; const elegidos = PRODUCTOS.filter(() => r() < 0.45); (elegidos.length ? elegidos : [PRODUCTOS[0]]).forEach(([pid]) => { its[pid] = 4 + Math.floor(r() * 12); });
+        const items = Object.entries(its).map(([pid, cantidad]) => ({ productoId: pid, nombre: prods[pid].nombre, cantidad, precio: prods[pid].precio }));
+        const tot = explotar(its, Object.fromEntries(Object.entries(prods).map(([id, p]) => [id, { receta: p.receta }])));
+        consumoMes[mes] ||= {}; Object.entries(tot).forEach(([iid, q]) => { consumoMes[mes][iid] = (consumoMes[mes][iid] || 0) + q; });
+        ops.push([db.collection('pedidos').doc(), { numero: ++n, clienteId: cid, clienteUid: null, clienteNombre: nombre, localidad, direccion: '', tipoCliente: 'mayorista', modoEntrega: 'envio', canal: r() < 0.5 ? 'web' : 'mostrador', entrega: dia, entregadoDia: dia, items, total: items.reduce((a, i) => a + i.cantidad * i.precio, 0), pago: 'Efectivo', notas: '', estado: 'entregado', historico: true, creado: new Date(`${dia}T08:00:00-03:00`), creadoPor: 'Datos de ejemplo' }]);
+      }
+      // Ventas del despacho (desde hace 4 meses)
+      if (k <= 120) {
+        const nv = 6 + Math.floor(r() * 8);
+        const ventas = [];
+        for (let j = 0; j < nv; j++) {
+          const pid = PRODUCTOS[Math.floor(r() * PRODUCTOS.length)];
+          const rev = REVENTA[Math.floor(r() * REVENTA.length)];
+          const items = [{ articuloId: `e-${pid[0]}`, productoId: pid[0], nombre: pid[1], unidad: 'u', cantidad: 1 + Math.floor(r() * 2), precio: pid[4] }];
+          if (r() < 0.5) items.push({ articuloId: rev[0], productoId: null, nombre: rev[1], unidad: rev[3], cantidad: rev[3] === 'kg' ? 0.25 : 1, precio: rev[4] });
+          items.forEach((i) => { i.subtotal = Math.round(i.cantidad * i.precio); });
+          ventas.push({ items, total: items.reduce((a, i) => a + i.subtotal, 0) });
+        }
+        ventas.forEach((v, j) => ops.push([db.collection('ventas').doc(), { numero: 0, historico: true, fecha: new Date(`${dia}T${String(8 + j).padStart(2, '0')}:30:00-03:00`), dia, items: v.items, total: v.total, pago: ['Efectivo', 'Efectivo', 'Débito', 'Mercado Pago', 'Transferencia'][Math.floor(r() * 5)], cliente: '', vendedor: 'Mostrador (demo)', anulada: false }]));
+      }
+    }
+    // Consumo de insumos: un movimiento por insumo y por mes (producción histórica)
+    for (const [mes, porIns] of Object.entries(consumoMes)) {
+      for (const [iid, q] of Object.entries(porIns)) {
+        const i = INSUMOS.find((x) => x[0] === iid);
+        ops.push([db.collection('movimientos').doc(), { insumoId: iid, insumoNombre: i?.[1] || iid, cantidad: -Math.round(q * 1.08 * 100) / 100, motivo: `Producción del mes ${mes.split('-').reverse().join('/')} (histórico)`, historico: true, fecha: new Date(`${mes}-27T20:00:00-03:00`), usuario: 'Datos de ejemplo' }]);
+      }
+    }
+    ops.push([marca, { creado: new Date(), documentos: ops.length }]);
+    await enLotes(ops);
+    console.log(`✓ Historial de 6 meses para los reportes (${ops.length} registros)`);
+  }
+}
+
+function diaSemanaSeed(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); }

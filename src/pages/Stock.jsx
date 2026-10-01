@@ -3,13 +3,16 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { useData } from '../data';
 import { Modal, Pill, Cargando, useAccion } from '../ui';
-import { cuando, fq } from '../util';
+import { cuando, fq, money } from '../util';
 import { reservado, r3 } from '../../shared/negocio.js';
 
 export default function Stock() {
   const { perfil } = useAuth();
   const { insumos, insumosPorId, ordenes, movimientos, cargando } = useData();
   const [modal, setModal] = useState(null);
+  const [ocupado, correr] = useAccion();
+  const g = perfil.rol === 'gerente';
+  const guardarCosto = (i, v) => { const c = Math.round((+v || 0) * 100) / 100; if (c !== (i.costo || 0)) correr(() => api('insumo', { insumoId: i.id, costo: c }), `Costo de ${i.nombre} actualizado`); };
   const puede = ['deposito', 'gerente'].includes(perfil.rol);
   const res = reservado(ordenes);
 
@@ -21,7 +24,7 @@ export default function Stock() {
         </div>
         {cargando ? <Cargando /> : (
           <div className="tbl-wrap"><table>
-            <thead><tr><th>Insumo</th><th className="r">En depósito</th><th className="r">Reservado</th><th className="r">Disponible</th><th className="r">Seguridad</th><th>Unidad</th><th>Nivel</th><th>Estado</th></tr></thead>
+            <thead><tr><th>Insumo</th><th className="r">En depósito</th><th className="r">Reservado</th><th className="r">Disponible</th><th className="r">Seguridad</th><th>Unidad</th>{g && <th className="r">Costo x unidad</th>}<th>Nivel</th><th>Estado</th></tr></thead>
             <tbody>{insumos.map((i) => {
               const rv = res[i.id] || 0; const disp = r3(i.stock - rv);
               const st = disp < i.seguridad * 0.5 ? ['Crítico', 'bad'] : disp < i.seguridad ? ['Bajo seguridad', 'warn'] : ['OK', 'ok'];
@@ -30,12 +33,13 @@ export default function Stock() {
                 <tr key={i.id}><td><div style={{ fontWeight: 500 }}>{i.nombre}</div><div className="muted small">{i.proveedor}</div></td>
                   <td className="r num">{fq(i.stock, i.unidad)}</td><td className="r num">{rv ? fq(rv, i.unidad) : '—'}</td>
                   <td className="r num" style={{ fontWeight: 600 }}>{fq(disp, i.unidad)}</td><td className="r num">{fq(i.seguridad, i.unidad)}</td><td className="muted">{i.unidad}</td>
+                  {g && <td className="r"><span className="row" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap', gap: 4 }}><span className="muted small">$</span><input key={`c-${i.id}-${i.costo}`} className="qty-in num" type="number" min="0" step="0.01" disabled={ocupado} defaultValue={i.costo || ''} placeholder="0" aria-label={`Costo de ${i.nombre} por ${i.unidad}`} onBlur={(e) => guardarCosto(i, e.target.value)} /></span></td>}
                   <td><div className="meter"><i style={{ width: `${pct}%`, background: `var(--${st[1]})` }} /></div></td><td><Pill e={st} /></td></tr>
               );
             })}</tbody>
           </table></div>
         )}
-        <p className="muted small" style={{ margin: '10px 0 0' }}>Reservado = insumos de órdenes de producción que todavía no se terminaron.</p>
+        <p className="muted small" style={{ margin: '10px 0 0' }}>Reservado = insumos de órdenes de producción que todavía no se terminaron.{g ? ` El costo por unidad se usa para calcular el costo y el margen de cada producto (en Recetas). Valor del stock: ${money(insumos.reduce((s, i) => s + (i.stock || 0) * (i.costo || 0), 0))}.` : ''}</p>
       </section>
       <section className="card">
         <div className="card-h"><h2>Últimos movimientos</h2></div>

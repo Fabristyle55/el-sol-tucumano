@@ -6,8 +6,8 @@
 //   hasta que el gerente los confirma y después entran en la planificación.
 // Minoristas: se arman con lo que hay en el despacho (elaborados y reventa);
 //   entran directamente como "reservados", sin autorización del gerente.
-import { db, endpoint, HttpError, FieldValue, registrar, siguienteNumero, notificar, texto } from '../lib/servidor.mjs';
-import { fechaAR, esFecha, FORMAS_PAGO, MODOS_ENTREGA, precioPara, precioArticulo, cantidadValida } from '../../shared/negocio.js';
+import { db, endpoint, HttpError, FieldValue, registrar, siguienteNumero, notificar, texto, avisarCliente } from '../lib/servidor.mjs';
+import { fechaAR, esFecha, FORMAS_PAGO, MODOS_ENTREGA, precioPara, precioArticulo, cantidadValida, estadoCuenta } from '../../shared/negocio.js';
 
 export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
   const pago = FORMAS_PAGO.includes(b.pago) || ['Débito', 'Crédito', 'Mercado Pago'].includes(b.pago) ? b.pago : 'Efectivo';
@@ -38,6 +38,13 @@ export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
   const modoEntrega = MODOS_ENTREGA.includes(b.modoEntrega) ? b.modoEntrega : (minorista ? 'retiro' : 'envio');
   if (modoEntrega === 'envio' && !cliente.direccion && minorista) {
     throw new HttpError(400, 'Para enviar el pedido hace falta una dirección. Si no, elegí "Retira en el local".');
+  }
+
+  // Cuenta corriente: solo para comercios mayoristas registrados y sin deuda vencida.
+  if (pago === 'Cuenta corriente') {
+    if (minorista || !cliente.id) throw new HttpError(400, 'La cuenta corriente es solo para comercios mayoristas registrados. Elegí otra forma de pago.');
+    const ec = estadoCuenta(cliente, fechaAR(0));
+    if (ec.estado === 'vencida' && yo.rol === 'cliente') throw new HttpError(409, `Tenés un saldo vencido de $${ec.saldo.toLocaleString('es-AR')} en tu cuenta corriente. Elegí otra forma de pago o comunicate con el local.`);
   }
 
   // 2) Fecha: los mayoristas desde mañana (hay que producir); los minoristas pueden retirar hoy.
@@ -99,10 +106,15 @@ export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
     num.guardar();
     const que = minorista ? 'Reserva' : (canal === 'web' ? 'Nuevo pedido web' : 'Pedido de mostrador');
     registrar(t, yo, `${que} #${num.valor} de ${cliente.nombre}`);
-    return { id: ref.id, numero: num.valor, estado, total, cliente: cliente.nombre, tipoCliente, modoEntrega };
+    return {
+      id: ref.id, numero: num.valor, estado, total, cliente: cliente.nombre, tipoCliente, modoEntrega,
+      pedido: { numero: num.valor, clienteId: cliente.id, clienteUid: cliente.uid || null, clienteNombre: cliente.nombre, entrega: b.entrega, items: lineas, total },
+    };
   });
 
   // Solo los pedidos mayoristas avisan al gerente (los minoristas los atiende el mostrador).
   if (!minorista) await notificar('pedido_creado', { ...res, canal, entrega: b.entrega });
-  return res;
+  if (canal === 'web') await avisarCliente(minorista ? 'reserva' : 'recibido', res.pedido);
+  const { pedido, ...salida } = res;
+  return salida;
 });

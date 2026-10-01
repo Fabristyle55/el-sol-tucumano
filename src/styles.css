@@ -13,7 +13,7 @@
   --line: #E2E5E1; --line-2: #CDD2CD;
   --brand: var(--verde); --brand-soft: var(--verde-soft); --brand-ink: #FFFFFF; --gold: var(--sol-deep); --gold-soft: var(--sol-soft);
   --ok: #18794A; --ok-soft: #E7F3EC; --warn: #9A6200; --warn-soft: #FCF1DC; --bad: var(--rojo); --bad-soft: var(--rojo-soft);
-  --info: #2D5D8E; --info-soft: #E8EFF7;
+  --info: #2D5D8E; --info-soft: #E8EFF7; --serie2: #D39B00;
   --shadow-xs: 0 1px 2px rgba(16, 24, 20, .05);
   --shadow-sm: 0 1px 2px rgba(16, 24, 20, .05), 0 1px 3px rgba(16, 24, 20, .04);
   --shadow: 0 4px 6px -2px rgba(16, 24, 20, .05), 0 12px 24px -4px rgba(16, 24, 20, .10);
@@ -30,7 +30,7 @@
   --verde: #3DAA69; --verde-hover: #4DBB79; --verde-deep: #A8DDBC; --verde-soft: #16271D;
   --rojo: #EE6A62; --rojo-soft: #34191A; --sol: #F2C744; --sol-deep: #F2C744; --sol-soft: #33290F;
   --bg: #0E1210; --surface: #151A17; --surface-2: #1A201C; --ink: #E8ECE9; --ink-2: #C3CAC5; --muted: #8E978F; --line: #252C28; --line-2: #343C37;
-  --brand-ink: #07110B; --ok: #55C285; --ok-soft: #15271C; --warn: #E3AE4F; --warn-soft: #30260F; --info: #86B2E0; --info-soft: #172331;
+  --brand-ink: #07110B; --ok: #55C285; --ok-soft: #15271C; --warn: #E3AE4F; --warn-soft: #30260F; --info: #86B2E0; --info-soft: #172331; --serie2: #E9BC3F;
   --shadow-xs: 0 1px 2px rgba(0,0,0,.3); --shadow-sm: 0 1px 2px rgba(0,0,0,.35); --shadow: 0 12px 28px -6px rgba(0,0,0,.6);
   color-scheme: dark;
 } }
@@ -38,7 +38,7 @@
   --verde: #3DAA69; --verde-hover: #4DBB79; --verde-deep: #A8DDBC; --verde-soft: #16271D;
   --rojo: #EE6A62; --rojo-soft: #34191A; --sol: #F2C744; --sol-deep: #F2C744; --sol-soft: #33290F;
   --bg: #0E1210; --surface: #151A17; --surface-2: #1A201C; --ink: #E8ECE9; --ink-2: #C3CAC5; --muted: #8E978F; --line: #252C28; --line-2: #343C37;
-  --brand-ink: #07110B; --ok: #55C285; --ok-soft: #15271C; --warn: #E3AE4F; --warn-soft: #30260F; --info: #86B2E0; --info-soft: #172331;
+  --brand-ink: #07110B; --ok: #55C285; --ok-soft: #15271C; --warn: #E3AE4F; --warn-soft: #30260F; --info: #86B2E0; --info-soft: #172331; --serie2: #E9BC3F;
   --shadow-xs: 0 1px 2px rgba(0,0,0,.3); --shadow-sm: 0 1px 2px rgba(0,0,0,.35); --shadow: 0 12px 28px -6px rgba(0,0,0,.6);
   color-scheme: dark;
 }
@@ -415,5 +415,87 @@ tr.detail td { background: var(--surface-2); font-size: 13px }
   .pos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px } .pos-item b { min-height: 0 }
   .tabs.grandes { gap: 14px; overflow-x: auto; flex-wrap: nowrap } .tabs.grandes button { white-space: nowrap }
   .tbl-wrap { margin-inline: -20px }
+}
+
+/* ---------- Mejoras: costos, vencimientos, caja, cuentas, reparto, comprobantes, recorrido ---------- */
+.costos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 14px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden }
+.costos > div { background: var(--surface-2); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px }
+.costos b { font-size: 20px; font-weight: 600; letter-spacing: -.02em }
+.pos-oferta, .ph-oferta { position: absolute; left: 6px; top: 6px; z-index: 2; font-size: 11px; font-weight: 600; padding: 0 6px; line-height: 18px; border-radius: 4px; background: var(--sol); color: #2B2100 }
+.ph-oferta { left: 8px; top: 8px }
+.kpi-mini { display: flex; flex-direction: column; gap: 2px }
+.kpi-mini b { font-size: 26px; font-weight: 600; letter-spacing: -.02em }
+.hist-dia + .hist-dia { margin-top: 14px }
+.hist-dia h3 { font-size: 13px; font-weight: 600; color: var(--muted); padding-bottom: 6px; border-bottom: 1px solid var(--line) }
+
+.recorrido { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start }
+.pasos { display: flex; flex-direction: column; gap: 0 }
+.paso { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px; padding: 0 0 18px }
+.paso::before { content: ""; position: absolute; left: 19px; top: 36px; bottom: 0; width: 2px; background: var(--line) }
+.paso:last-child::before { display: none }
+.paso.hecho::before { background: var(--verde) }
+.paso-n { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; border: 2px solid var(--line-2); background: var(--surface); color: var(--muted); position: relative; z-index: 1 }
+.paso.hecho .paso-n { background: var(--verde); border-color: var(--verde); color: #fff }
+.paso.actual .paso-n { border-color: var(--verde); color: var(--verde); box-shadow: 0 0 0 4px var(--verde-soft) }
+.paso-body { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-xs) }
+.paso.actual .paso-body { border-color: var(--verde); box-shadow: 0 0 0 1px var(--verde) }
+.paso.falta .paso-body { opacity: .6 }
+.paso-body h2 { font-size: 15px }
+.paso-body p { margin: 0; font-size: 13.5px }
+.paso-body .btn { align-self: flex-start }
+.recorrido-lado { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 10px }
+
+/* Hoja de reparto y comprobantes (se imprimen) */
+.hoja-cab { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--ink); margin-bottom: 8px }
+.hoja-cab > div { display: flex; gap: 12px; align-items: center }
+.hoja-cab img { width: 54px; border-radius: 6px }
+.hoja-cab b { display: block; font-size: 18px }
+.hoja-cab span { color: var(--muted); font-size: 13px }
+.hoja-cab .r { flex-direction: column; align-items: flex-end; gap: 0 }
+.hoja-zona { margin-top: 14px }
+.hoja-zona h3 { font-size: 15px; margin-bottom: 6px }
+.hoja .tbl-wrap { margin-inline: 0 }
+.hoja th:first-child, .hoja td:first-child { padding-left: 8px }
+.hoja th:last-child, .hoja td:last-child { padding-right: 8px }
+.hoja table { table-layout: fixed }
+.hoja th:nth-child(1) { width: 34px } .hoja th:nth-child(2) { width: 120px } .hoja th:nth-child(3) { width: 30% } .hoja th:nth-child(5) { width: 110px }
+.casilla { display: inline-block; width: 16px; height: 16px; border: 1.5px solid var(--ink-2); border-radius: 3px }
+.firma { width: 150px }
+.hoja-pie { display: flex; justify-content: space-between; gap: 20px; margin-top: 16px; padding-top: 12px; border-top: 2px solid var(--ink) }
+.hoja-pie .r { text-align: right } .hoja-pie b { font-size: 20px; display: block }
+
+.comprobante { background: #fff; color: #121814; width: min(720px, 100%); margin: 0 auto; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 28px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 14px }
+.comprobante header { display: flex; align-items: center; gap: 14px }
+.comprobante header img { width: 72px; border-radius: 8px }
+.comprobante .emisor { flex: 1; display: flex; flex-direction: column } .comprobante .emisor b { font-size: 17px } .comprobante .emisor span { color: #69726c; font-size: 13px }
+.comprobante .nro { text-align: right; display: flex; flex-direction: column; font-size: 13px; color: #69726c } .comprobante .nro b { font-size: 20px; color: #121814 }
+.comprobante .franja { height: 4px; background: var(--tricolor); border-radius: 2px; border: 1px solid #e2e5e1 }
+.comprobante .datos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.comprobante .datos > div { display: flex; flex-direction: column; gap: 1px; font-size: 13px } .comprobante .datos .lbl { color: #69726c } .comprobante .datos b { font-size: 14px }
+.comprobante .items th { background: #f4f5f3; color: #69726c }
+.comprobante .items td, .comprobante .items th { border-color: #e2e5e1; padding: 8px 10px }
+.comprobante .items th:first-child, .comprobante .items td:first-child { padding-left: 10px }
+.comprobante .tot { display: flex; justify-content: flex-end; gap: 24px; align-items: baseline; font-size: 15px; border-top: 2px solid #121814; padding-top: 10px } .comprobante .tot b { font-size: 24px }
+.comprobante .anulada { text-align: center; font-weight: 700; color: #C42A22; letter-spacing: .2em; border: 2px solid #C42A22; padding: 6px; border-radius: 6px }
+.comprobante .firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; font-size: 12px; color: #69726c }
+.comprobante .firmas span { display: block; border-top: 1px solid #121814; margin-bottom: 4px }
+.comprobante footer { text-align: center; font-size: 12px; color: #69726c; border-top: 1px dashed #cdd2cd; padding-top: 10px }
+.comprobante.ticket { width: min(420px, 100%) }
+.comprobante.ticket .datos { grid-template-columns: 1fr }
+
+@media (max-width: 980px) { .recorrido { grid-template-columns: minmax(0, 1fr) } .recorrido-lado { position: static } }
+@media (max-width: 560px) { .costos { grid-template-columns: 1fr } .comprobante { padding: 18px } .comprobante .datos { grid-template-columns: 1fr } }
+
+@media print {
+  @page { margin: 12mm }
+  body { background: #fff !important; color: #000 }
+  .side, .head, .no-print, .toast, .modal-bg { display: none !important }
+  .app { display: block } main { padding: 0 !important; max-width: none }
+  .page { animation: none }
+  .card, .comprobante { border: 0 !important; box-shadow: none !important; padding: 0 !important; background: #fff !important }
+  .comprobante { width: 100% !important }
+  tbody tr:hover { background: none }
+  tr { break-inside: avoid }
+  .franja, .comprobante .items th { -webkit-print-color-adjust: exact; print-color-adjust: exact }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important } }

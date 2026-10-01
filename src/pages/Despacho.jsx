@@ -1,16 +1,17 @@
 import { useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useData } from '../data';
 import { Modal, Pill, Vacio, useAccion, Contador } from '../ui';
-import { cant, cuando, dRel, dShort, estadoDe, hhmm, hoy, money, sumarDias } from '../util';
-import { CATEGORIAS_DESPACHO, PAGOS_DESPACHO, precioArticulo, r3 } from '../../shared/negocio.js';
+import { cant, cuando, dLarga, dRel, dShort, estadoDe, hhmm, hoy, money, sumarDias } from '../util';
+import { CATEGORIAS_DESPACHO, MOTIVOS_MERMA, PAGOS_DESPACHO, precioArticulo, precioBaseArticulo, r3, resumenCaja, vencimiento } from '../../shared/negocio.js';
 import { ImagenArticulo } from '../components/Pan';
 import PedidoModal from '../components/PedidoModal';
 
-const PESTANAS = [['vender', 'Vender'], ['reservas', 'Reservas'], ['stock', 'Stock'], ['ventas', 'Ventas del día']];
+const PESTANAS = [['vender', 'Vender'], ['reservas', 'Reservas'], ['stock', 'Stock'], ['caja', 'Caja'], ['ventas', 'Ventas del día']];
 const estadoStock = (a) => ((a.stock || 0) <= 0 ? ['Sin stock', 'bad'] : (a.stock || 0) < (a.minimo || 0) ? ['Queda poco', 'warn'] : ['OK', 'ok']);
+const pillVence = (v) => (!v ? null : v.estado === 'vencido' ? ['Vencido', 'bad'] : v.estado === 'pronto' ? [v.dias === 0 ? 'Vence hoy' : v.dias === 1 ? 'Vence mañana' : `Vence en ${v.dias} días`, 'warn'] : null);
 
 export default function Despacho() {
   const { perfil } = useAuth();
@@ -30,6 +31,7 @@ export default function Despacho() {
       {tab === 'vender' && <Vender />}
       {tab === 'reservas' && <Reservas />}
       {tab === 'stock' && <StockDespacho />}
+      {tab === 'caja' && <Caja />}
       {tab === 'ventas' && <VentasDia />}
     </>
   );
@@ -91,10 +93,11 @@ function Vender() {
                 <span className="pos-img"><ImagenArticulo articulo={a} productosPorId={productosPorId} /></span>
                 <b>{a.nombre}</b>
                 <span className="row" style={{ justifyContent: 'space-between', width: '100%' }}>
-                  <span className="num precio">{money(precio(a))}{a.unidad === 'kg' ? '/kg' : ''}</span>
+                  <span className="num precio">{a.oferta > 0 && <s className="muted" style={{ fontWeight: 400, marginRight: 4 }}>{money(precioBaseArticulo(a, productosPorId))}</s>}{money(precio(a))}{a.unidad === 'kg' ? '/kg' : ''}</span>
                   <span className={`stock-chip ${estadoStock(a)[1]}`}>{sin ? 'Sin stock' : cant(a.stock, a.unidad)}</span>
                 </span>
                 {enTicket && <span className="pos-cant" key={enTicket.k}>{cant(enTicket.cantidad, a.unidad)}</span>}
+                {a.oferta > 0 && <span className="pos-oferta">-{a.oferta}%</span>}
               </button>
             );
           })}
@@ -105,7 +108,7 @@ function Vender() {
       <section className="card pos-ticket" ref={ticketRef}>
         <div className="card-h"><h2>Venta</h2>{lineas.length > 0 && <button className="linkbtn small" onClick={() => setTicket([])}>Vaciar</button>}</div>
         {hecho && !lineas.length && (
-          <div className="venta-ok"><span className="check">✓</span><b>Venta #{hecho.numero} registrada</b><span className="muted small">{money(hecho.total)} · el stock ya se descontó</span></div>
+          <div className="venta-ok"><span className="check">✓</span><b>Venta #{hecho.numero} registrada</b><span className="muted small">{money(hecho.total)} · el stock ya se descontó</span>{hecho.id && <Link className="btn sm" to={`/comprobante?tipo=venta&id=${hecho.id}`} target="_blank">Imprimir ticket</Link>}</div>
         )}
         {!lineas.length && !hecho && <div className="empty">Tocá los artículos para agregarlos a la venta.</div>}
         <div className="ticket-lineas">
@@ -184,68 +187,112 @@ function Reservas() {
 /* ---------------------------- Stock ---------------------------- */
 function StockDespacho() {
   const { perfil } = useAuth();
-  const { articulos, productosPorId, movDespacho } = useData();
+  const { articulos, productosPorId, movDespacho, mermas } = useData();
   const [modal, setModal] = useState(null); // {tipo, articulo}
+  const [ocupado, correr] = useAccion();
+  const T = hoy();
   const bajos = articulos.filter((a) => a.activo !== false && (a.stock || 0) < (a.minimo || 0));
+  const porVencer = articulos.map((a) => ({ a, v: vencimiento(a, T) })).filter((x) => x.v && x.v.estado !== 'ok').sort((x, y) => x.v.dias - y.v.dias);
+  const semana = mermas.filter((m) => m.dia >= sumarDias(T, -6));
+  const valorMermas = semana.reduce((s, m) => s + (m.valor || 0), 0);
+  const porMotivo = {};
+  semana.forEach((m) => { porMotivo[m.motivo] = (porMotivo[m.motivo] || 0) + (m.valor || 0); });
+  const ofertar = (a, pct) => correr(() => api('despacho', { accion: 'articulo', id: a.id, nombre: a.nombre, categoria: a.categoria, unidad: a.unidad, precio: a.precio, minimo: a.minimo, activo: a.activo !== false, vence: a.vence, oferta: pct }), pct ? `${a.nombre} en oferta con ${pct} % de descuento` : `Se quitó la oferta de ${a.nombre}`);
   return (
     <>
+      {porVencer.length > 0 && (
+        <section className="card aviso-vence">
+          <div className="card-h"><div><h2>Vencimientos</h2><p className="muted small" style={{ margin: '4px 0 0' }}>Productos que vencen en los próximos días. Conviene ponerlos en oferta para venderlos antes.</p></div></div>
+          <div className="attn-list">{porVencer.map(({ a, v }) => (
+            <div className="attn" key={a.id}><span className="stripe" style={{ background: `var(--${v.estado === 'vencido' ? 'bad' : 'warn'})` }} />
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 500 }}>{a.nombre} <Pill e={pillVence(v)} /></div>
+                <div className="muted small">Hay {cant(a.stock, a.unidad)} · vence el {dLarga(a.vence)}{a.oferta ? ` · en oferta -${a.oferta} %` : ''}</div></div>
+              {v.estado === 'vencido'
+                ? <button className="btn sm ghost-bad" onClick={() => setModal({ tipo: 'merma', articulo: a, motivo: 'Vencido' })}>Dar de baja</button>
+                : a.oferta ? <button className="btn sm" disabled={ocupado} onClick={() => ofertar(a, 0)}>Quitar oferta</button>
+                  : <button className="btn sm primary" disabled={ocupado} onClick={() => ofertar(a, 20)}>Poner en oferta -20 %</button>}
+            </div>
+          ))}</div>
+        </section>
+      )}
       {bajos.length > 0 && <div className="note warn">Queda poco de: {bajos.map((a) => a.nombre).join(', ')}.</div>}
       <section className="card">
         <div className="card-h"><h2>Artículos del despacho</h2><button className="btn primary" onClick={() => setModal({ tipo: 'articulo' })}>Nuevo artículo de reventa</button></div>
         <div className="tbl-wrap"><table>
-          <thead><tr><th>Artículo</th><th>Categoría</th><th className="r">Precio</th><th className="r">Stock</th><th className="r">Mínimo</th><th>Estado</th><th /></tr></thead>
-          <tbody>{articulos.map((a) => (
-            <tr key={a.id} style={a.activo === false ? { opacity: 0.5 } : undefined}>
-              <td><div className="row" style={{ gap: 10, flexWrap: 'nowrap' }}><span className="mini-actual"><ImagenArticulo articulo={a} productosPorId={productosPorId} /></span><div><div style={{ fontWeight: 600 }}>{a.nombre}</div><div className="muted small">{a.productoId ? 'Elaborado · repone producción' : 'Reventa'}</div></div></div></td>
-              <td>{a.categoria}</td>
-              <td className="r num">{money(precioArticulo(a, productosPorId))}{a.unidad === 'kg' ? '/kg' : ''}</td>
-              <td className="r num" style={{ fontWeight: 700 }}>{cant(a.stock || 0, a.unidad)}</td>
-              <td className="r num">{cant(a.minimo || 0, a.unidad)}</td>
-              <td><Pill e={estadoStock(a)} /></td>
-              <td><div className="row" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
-                <button className="btn sm" onClick={() => setModal({ tipo: 'ingreso', articulo: a })}>Ingreso</button>
-                <button className="btn sm" onClick={() => setModal({ tipo: 'ajuste', articulo: a })}>Ajuste</button>
-                <button className="btn sm" onClick={() => setModal({ tipo: 'articulo', articulo: a })}>Editar</button>
-              </div></td>
-            </tr>
-          ))}</tbody>
+          <thead><tr><th>Artículo</th><th>Categoría</th><th className="r">Precio</th><th className="r">Stock</th><th className="r">Mínimo</th><th>Vence</th><th>Estado</th><th /></tr></thead>
+          <tbody>{articulos.map((a) => {
+            const v = vencimiento(a, T);
+            return (
+              <tr key={a.id} style={a.activo === false ? { opacity: 0.5 } : undefined}>
+                <td><div className="row" style={{ gap: 10, flexWrap: 'nowrap' }}><span className="mini-actual"><ImagenArticulo articulo={a} productosPorId={productosPorId} /></span><div><div style={{ fontWeight: 600 }}>{a.nombre}</div><div className="muted small">{a.productoId ? 'Elaborado' : 'Reventa'}</div></div></div></td>
+                <td>{a.categoria}</td>
+                <td className="r num">{a.oferta > 0 && <><span className="pill gold" style={{ marginRight: 6 }}>-{a.oferta}%</span></>}{money(precioArticulo(a, productosPorId))}{a.unidad === 'kg' ? '/kg' : ''}</td>
+                <td className="r num" style={{ fontWeight: 700 }}>{cant(a.stock || 0, a.unidad)}</td>
+                <td className="r num">{cant(a.minimo || 0, a.unidad)}</td>
+                <td className="small">{v ? (pillVence(v) ? <Pill e={pillVence(v)} /> : <span className="num">{dLarga(a.vence)}</span>) : <span className="muted">—</span>}</td>
+                <td><Pill e={estadoStock(a)} /></td>
+                <td><div className="row" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                  <button className="btn sm" onClick={() => setModal({ tipo: 'ingreso', articulo: a })}>Ingreso</button>
+                  <button className="btn sm" disabled={!(a.stock > 0)} onClick={() => setModal({ tipo: 'merma', articulo: a })}>Merma</button>
+                  <button className="btn sm" onClick={() => setModal({ tipo: 'ajuste', articulo: a })}>Ajuste</button>
+                  <button className="btn sm" onClick={() => setModal({ tipo: 'articulo', articulo: a })}>Editar</button>
+                </div></td>
+              </tr>
+            );
+          })}</tbody>
         </table></div>
-        <p className="muted small" style={{ margin: '10px 0 0' }}>Los elaborados se reponen solos cuando el panadero termina una orden con "extra para el local". La reventa se carga con "Ingreso".{perfil.rol === 'gerente' ? ' Los precios de los elaborados se editan en Recetas.' : ''}</p>
+        <p className="muted small" style={{ margin: '10px 0 0' }}>Los elaborados se reponen solos cuando el panadero termina una orden con "extra para el local". La reventa se carga con "Ingreso", con su fecha de vencimiento. "Merma" da de baja lo que sobró, venció o se rompió.{perfil.rol === 'gerente' ? ' Los precios de los elaborados se editan en Recetas.' : ''}</p>
       </section>
-      <section className="card">
-        <div className="card-h"><h2>Últimos movimientos</h2></div>
-        <div className="list">
-          {movDespacho.map((m) => (
-            <div className="li" key={m.id}><span className="when">{cuando(m.fecha)}</span>
-              <div className="body" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <span>{m.articuloNombre} <span className="muted">· {m.motivo} · {m.usuario}</span></span>
-                <span className="num" style={{ color: `var(--${m.cantidad < 0 ? 'bad' : 'ok'})` }}>{m.cantidad > 0 ? '+' : ''}{cant(m.cantidad, m.unidad)}</span>
+      <div className="grid2">
+        <section className="card">
+          <div className="card-h"><h2>Mermas de la semana</h2><span className="num" style={{ fontWeight: 600 }}>{money(valorMermas)}</span></div>
+          {semana.length ? (
+            <>
+              <div className="row" style={{ marginBottom: 10 }}>{Object.entries(porMotivo).map(([m, v]) => <span className="chip" key={m}>{m}: {money(v)}</span>)}</div>
+              <div className="list">{[...semana].sort((x, y) => y.dia.localeCompare(x.dia)).slice(0, 8).map((m) => (
+                <div className="li" key={m.id}><span className="when">{dShort(m.dia).split(',')[0]}</span>
+                  <div className="body" style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>{cant(m.cantidad, m.unidad)} {m.articuloNombre} <span className="muted">· {m.motivo}</span></span><span className="num muted">{money(m.valor)}</span></div></div>
+              ))}</div>
+              <p className="muted small" style={{ margin: '10px 0 0' }}>Lo que sobra de pan se usa en Planificación para sugerir cuánto hornear de más para el local.</p>
+            </>
+          ) : <Vacio>No se registraron mermas en los últimos 7 días.</Vacio>}
+        </section>
+        <section className="card">
+          <div className="card-h"><h2>Últimos movimientos</h2></div>
+          <div className="list">
+            {movDespacho.slice(0, 12).map((m) => (
+              <div className="li" key={m.id}><span className="when">{cuando(m.fecha)}</span>
+                <div className="body" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <span>{m.articuloNombre} <span className="muted">· {m.motivo} · {m.usuario}</span></span>
+                  <span className="num" style={{ color: `var(--${m.cantidad < 0 ? 'bad' : 'ok'})` }}>{m.cantidad > 0 ? '+' : ''}{cant(m.cantidad, m.unidad)}</span>
+                </div>
               </div>
-            </div>
-          ))}
-          {!movDespacho.length && <div className="empty">Todavía no hay movimientos.</div>}
-        </div>
-      </section>
+            ))}
+            {!movDespacho.length && <div className="empty">Todavía no hay movimientos.</div>}
+          </div>
+        </section>
+      </div>
       {modal && <ModalStock {...modal} onClose={() => setModal(null)} />}
     </>
   );
 }
 
-function ModalStock({ tipo, articulo, onClose }) {
+function ModalStock({ tipo, articulo, motivo: motivoInicial, onClose }) {
   const { productosPorId } = useData();
   const [ocupado, correr] = useAccion();
   const elaborado = !!articulo?.productoId;
   const [f, setF] = useState({
-    cantidad: '', motivo: '',
+    cantidad: '', motivo: tipo === 'merma' ? (motivoInicial || (elaborado ? 'No se vendió' : 'Vencido')) : '', vence: '',
     nombre: articulo?.nombre || '', categoria: articulo?.categoria || 'Lácteos', unidad: articulo?.unidad || 'u',
-    precio: articulo ? precioArticulo(articulo, productosPorId) : '', minimo: articulo?.minimo ?? '', activo: articulo?.activo !== false,
+    precio: articulo ? precioBaseArticulo(articulo, productosPorId) : '', minimo: articulo?.minimo ?? '', activo: articulo?.activo !== false,
+    oferta: articulo?.oferta || 0, venceArt: articulo?.vence || '',
   });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   const kg = (articulo?.unidad || f.unidad) === 'kg';
 
   if (tipo === 'articulo') {
     const guardar = async () => {
-      const r = await correr(() => api('despacho', { accion: 'articulo', id: articulo?.id, nombre: f.nombre, categoria: f.categoria, unidad: f.unidad, precio: Number(f.precio), minimo: Number(f.minimo), activo: f.activo }), articulo ? 'Artículo actualizado' : 'Artículo agregado');
+      const r = await correr(() => api('despacho', { accion: 'articulo', id: articulo?.id, nombre: f.nombre, categoria: f.categoria, unidad: f.unidad, precio: Number(f.precio), minimo: Number(f.minimo), activo: f.activo, oferta: Number(f.oferta) || 0, vence: f.venceArt || null }), articulo ? 'Artículo actualizado' : 'Artículo agregado');
       if (r) onClose();
     };
     return (
@@ -254,19 +301,40 @@ function ModalStock({ tipo, articulo, onClose }) {
         <div className="fields2">
           {!elaborado && <div className="field"><label htmlFor="ar-c">Categoría</label><select id="ar-c" value={f.categoria} onChange={set('categoria')}>{CATEGORIAS_DESPACHO.filter((c) => c !== 'Panificados').map((c) => <option key={c}>{c}</option>)}</select></div>}
           {!elaborado && !articulo && <div className="field"><label htmlFor="ar-u">Se vende por</label><select id="ar-u" value={f.unidad} onChange={set('unidad')}><option value="u">Unidad</option><option value="kg">Kilo (fiambres, quesos)</option></select></div>}
-          {!elaborado && <div className="field"><label htmlFor="ar-p">Precio {f.unidad === 'kg' ? 'por kg' : ''}</label><input id="ar-p" type="number" min="0" value={f.precio} onChange={set('precio')} /></div>}
+          {!elaborado && <div className="field"><label htmlFor="ar-p">Precio de lista {f.unidad === 'kg' ? 'por kg' : ''}</label><input id="ar-p" type="number" min="0" value={f.precio} onChange={set('precio')} /></div>}
           <div className="field"><label htmlFor="ar-m">Stock mínimo ({kg ? 'kg' : 'u'})</label><input id="ar-m" type="number" min="0" step={kg ? 0.1 : 1} value={f.minimo} onChange={set('minimo')} /></div>
+          <div className="field"><label htmlFor="ar-o">Oferta (% de descuento)</label><input id="ar-o" type="number" min="0" max="70" value={f.oferta} onChange={set('oferta')} /></div>
+          {articulo && !elaborado && <div className="field"><label htmlFor="ar-v">Próximo vencimiento</label><input id="ar-v" type="date" value={f.venceArt} onChange={set('venceArt')} /></div>}
         </div>
-        {elaborado && <p className="muted small" style={{ margin: 0 }}>Es un producto elaborado: el nombre y el precio salen de Recetas.</p>}
+        {Number(f.oferta) > 0 && <p className="small" style={{ margin: 0 }}>Precio con oferta: <b className="num">{money(Math.round((Number(f.precio) || 0) * (100 - Math.min(70, Number(f.oferta))) / 100))}</b>{f.unidad === 'kg' ? ' por kg' : ''}</p>}
+        {elaborado && <p className="muted small" style={{ margin: 0 }}>Es un producto elaborado: el nombre y el precio salen de Recetas. La oferta se aplica solo en el despacho.</p>}
         {articulo && <label className="row small"><input type="checkbox" checked={f.activo} onChange={set('activo')} /> Se vende en el despacho</label>}
         <div className="row" style={{ justifyContent: 'flex-end' }}><button className="btn" onClick={onClose}>Cerrar</button><button className="btn primary" disabled={ocupado} onClick={guardar}>Guardar</button></div>
       </Modal>
     );
   }
 
+  if (tipo === 'merma') {
+    const guardar = async () => {
+      const r = await correr(() => api('despacho', { accion: 'merma', articuloId: articulo.id, cantidad: Number(f.cantidad), motivo: f.motivo, nota: f.nota }), 'Merma registrada');
+      if (r) onClose();
+    };
+    return (
+      <Modal titulo={`Merma: ${articulo.nombre}`} onClose={onClose}>
+        <div className="fields2">
+          <div className="field"><label htmlFor="me-c">Cantidad ({kg ? 'kg' : 'u'})</label><input id="me-c" type="number" min="0" max={articulo.stock} step={kg ? 0.05 : 1} value={f.cantidad} onChange={set('cantidad')} autoFocus /></div>
+          <div className="field"><label htmlFor="me-m">Motivo</label><select id="me-m" value={f.motivo} onChange={set('motivo')}>{MOTIVOS_MERMA.map((m) => <option key={m}>{m}</option>)}</select></div>
+        </div>
+        <div className="field"><label htmlFor="me-n">Nota (opcional)</label><input id="me-n" type="text" value={f.nota || ''} onChange={set('nota')} placeholder="Ej.: se donó al comedor" /></div>
+        <p className="muted small" style={{ margin: 0 }}>Hay {cant(articulo.stock || 0, articulo.unidad)}. Lo que des de baja sale del stock y queda registrado como pérdida.</p>
+        <div className="row" style={{ justifyContent: 'flex-end' }}><button className="btn" onClick={onClose}>Cerrar</button><button className="btn primary" disabled={ocupado || !(Number(f.cantidad) > 0)} onClick={guardar}>Dar de baja</button></div>
+      </Modal>
+    );
+  }
+
   const ingreso = tipo === 'ingreso';
   const guardar = async () => {
-    const r = await correr(() => api('despacho', { accion: tipo, articuloId: articulo.id, cantidad: Number(f.cantidad), motivo: f.motivo }), ingreso ? 'Ingreso registrado' : 'Stock ajustado');
+    const r = await correr(() => api('despacho', { accion: tipo, articuloId: articulo.id, cantidad: Number(f.cantidad), motivo: f.motivo, vence: f.vence || null }), ingreso ? 'Ingreso registrado' : 'Stock ajustado');
     if (r) onClose();
   };
   return (
@@ -274,10 +342,75 @@ function ModalStock({ tipo, articulo, onClose }) {
       <div className="fields2">
         <div className="field"><label htmlFor="mv-c">{ingreso ? 'Cantidad que entra' : 'Cantidad contada'} ({kg ? 'kg' : 'u'})</label><input id="mv-c" type="number" min="0" step={kg ? 0.05 : 1} value={f.cantidad} onChange={set('cantidad')} autoFocus /></div>
         <div className="field"><label htmlFor="mv-mo">Motivo</label><input id="mv-mo" type="text" value={f.motivo} onChange={set('motivo')} placeholder={ingreso ? 'Llegó el proveedor, sobrante de pedido…' : 'Conteo de cierre'} /></div>
+        {ingreso && !elaborado && <div className="field"><label htmlFor="mv-v">Vence el (opcional)</label><input id="mv-v" type="date" min={hoy()} value={f.vence} onChange={set('vence')} /></div>}
       </div>
-      <p className="muted small" style={{ margin: 0 }}>Hoy hay {cant(articulo.stock || 0, articulo.unidad)}.{!ingreso && ' Se reemplaza por lo que cargues.'}</p>
+      <p className="muted small" style={{ margin: 0 }}>Hoy hay {cant(articulo.stock || 0, articulo.unidad)}.{!ingreso && ' Se reemplaza por lo que cargues.'}{ingreso && articulo.vence && articulo.stock > 0 ? ` Lo que hay ahora vence el ${dLarga(articulo.vence)}; se avisa por la fecha más próxima.` : ''}</p>
       <div className="row" style={{ justifyContent: 'flex-end' }}><button className="btn" onClick={onClose}>Cerrar</button><button className="btn primary" disabled={ocupado || f.cantidad === ''} onClick={guardar}>Guardar</button></div>
     </Modal>
+  );
+}
+
+/* ---------------------------- Caja ---------------------------- */
+function Caja() {
+  const { perfil } = useAuth();
+  const { ventas, pedidos, cierres } = useData();
+  const T = hoy();
+  const [f, setF] = useState({ fondo: '', contado: '', notas: '' });
+  const [ocupado, correr] = useAccion();
+  const ventasHoy = ventas.filter((v) => v.dia === T);
+  const reservasHoy = pedidos.filter((p) => p.tipoCliente === 'minorista' && p.estado === 'entregado' && p.entregadoDia === T);
+  const r = resumenCaja(ventasHoy, reservasHoy);
+  const fondo = Math.max(0, Math.round(Number(f.fondo) || 0));
+  const esperado = fondo + r.efectivo;
+  const contado = f.contado === '' ? null : Math.round(Number(f.contado) || 0);
+  const dif = contado === null ? null : contado - esperado;
+  const cierreHoy = cierres.find((c) => c.dia === T);
+  const puedeCerrar = !cierreHoy || perfil.rol === 'gerente';
+  const historial = [...cierres].sort((a, b) => b.dia.localeCompare(a.dia));
+  const cerrar = async () => {
+    const x = await correr(() => api('despacho', { accion: 'cierre', fondo, contado, notas: f.notas }), (y) => (y.diferencia === 0 ? 'Caja cerrada sin diferencias' : `Caja cerrada: ${y.diferencia > 0 ? 'sobran' : 'faltan'} ${money(Math.abs(y.diferencia))}`));
+    if (x) setF({ fondo: '', contado: '', notas: '' });
+  };
+  const difPill = (d) => (d === 0 ? ['Sin diferencias', 'ok'] : d > 0 ? [`Sobran ${money(d)}`, 'warn'] : [`Faltan ${money(-d)}`, 'bad']);
+  return (
+    <>
+      <div className="grid2">
+        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="card-h" style={{ marginBottom: 0 }}><h2>Cierre de caja de hoy</h2>{cierreHoy && <Pill e={['Caja cerrada', 'ok']} />}</div>
+          <div className="lines">
+            <div className="line"><span>Ventas en efectivo</span><span className="num">{money(r.efectivo - reservasHoy.filter((p) => p.pago === 'Efectivo').reduce((s, p) => s + p.total, 0))}</span></div>
+            <div className="line"><span>Reservas retiradas en efectivo</span><span className="num">{money(reservasHoy.filter((p) => p.pago === 'Efectivo').reduce((s, p) => s + p.total, 0))}</span></div>
+            {Object.entries(r.porPago).filter(([p]) => p !== 'Efectivo').map(([p, t]) => <div className="line muted" key={p}><span>{p} (no entra en la caja)</span><span className="num">{money(t)}</span></div>)}
+          </div>
+          {cierreHoy && !puedeCerrar ? (
+            <div className="note ok" style={{ marginTop: 14 }}>La caja de hoy la cerró {cierreHoy.cerradoPor}: se contaron {money(cierreHoy.contado)} y {cierreHoy.diferencia === 0 ? 'no hubo diferencias' : `${cierreHoy.diferencia > 0 ? 'sobraron' : 'faltaron'} ${money(Math.abs(cierreHoy.diferencia))}`}.</div>
+          ) : (
+            <>
+              <div className="fields2">
+                <div className="field"><label htmlFor="cj-f">Fondo de caja al abrir</label><input id="cj-f" type="number" min="0" value={f.fondo} onChange={(e) => setF({ ...f, fondo: e.target.value })} placeholder="0" /></div>
+                <div className="field"><label htmlFor="cj-c">Efectivo contado ahora</label><input id="cj-c" type="number" min="0" value={f.contado} onChange={(e) => setF({ ...f, contado: e.target.value })} placeholder="Contá los billetes" /></div>
+              </div>
+              <div className="total"><span>Debería haber</span><span className="num">{money(esperado)}</span></div>
+              {dif !== null && <div className={`note ${dif === 0 ? 'ok' : dif > 0 ? 'warn' : 'bad'}`}>{dif === 0 ? 'Coincide con lo vendido en efectivo.' : `${dif > 0 ? 'Sobran' : 'Faltan'} ${money(Math.abs(dif))}. Revisá si quedó una venta sin cargar o un vuelto mal dado.`}</div>}
+              <div className="field"><label htmlFor="cj-n">Notas (opcional)</label><input id="cj-n" type="text" value={f.notas} onChange={(e) => setF({ ...f, notas: e.target.value })} placeholder="Ej.: se pagó al repartidor del sodero" /></div>
+              <button className="btn primary" style={{ alignSelf: 'flex-start' }} disabled={ocupado || contado === null} onClick={cerrar}>{cierreHoy ? 'Corregir el cierre' : 'Cerrar la caja'}</button>
+            </>
+          )}
+        </section>
+        <section className="card">
+          <div className="card-h"><h2>Cierres anteriores</h2><span className="muted small">últimas 2 semanas</span></div>
+          {historial.length ? (
+            <div className="tbl-wrap"><table>
+              <thead><tr><th>Día</th><th className="r">Debería</th><th className="r">Contado</th><th>Resultado</th><th>Cerró</th></tr></thead>
+              <tbody>{historial.map((c) => (
+                <tr key={c.id}><td>{c.dia === T ? 'Hoy' : dShort(c.dia)}</td><td className="r num">{money(c.esperado)}</td><td className="r num">{money(c.contado)}</td>
+                  <td><Pill e={difPill(c.diferencia)} />{c.notas ? <div className="muted small">{c.notas}</div> : null}</td><td className="small muted">{c.cerradoPor}</td></tr>
+              ))}</tbody>
+            </table></div>
+          ) : <Vacio>Todavía no hay cierres de caja.</Vacio>}
+        </section>
+      </div>
+    </>
   );
 }
 
@@ -325,13 +458,13 @@ function VentasDia() {
         <div className="card-h"><h2>Ventas {dia === hoy() ? 'de hoy' : `del ${dShort(dia)}`}</h2><span className="muted small">las anota el mostrador</span></div>
         {delDia.length ? (
           <div className="tbl-wrap"><table>
-            <thead><tr><th>Venta</th><th>Hora</th><th>Artículos</th><th>Pago</th><th>Vendió</th><th className="r">Total</th>{perfil.rol === 'gerente' && <th />}</tr></thead>
+            <thead><tr><th>Venta</th><th>Hora</th><th>Artículos</th><th>Pago</th><th>Vendió</th><th className="r">Total</th><th /></tr></thead>
             <tbody>{delDia.map((v) => (
               <tr key={v.id} style={v.anulada ? { opacity: 0.5, textDecoration: 'line-through' } : undefined}>
                 <td className="num">#{v.numero}</td><td className="num">{hhmm(v.fecha)}</td>
                 <td className="small">{v.items.map((i) => `${cant(i.cantidad, i.unidad)} ${i.nombre}`).join(' · ')}{v.cliente ? <span className="muted"> — {v.cliente}</span> : null}</td>
                 <td>{v.pago}</td><td className="small muted">{v.vendedor}</td><td className="r num" style={{ fontWeight: 700 }}>{money(v.total)}</td>
-                {perfil.rol === 'gerente' && <td className="r">{!v.anulada && <button className="btn sm ghost-bad" onClick={() => setAnular(v)}>Anular</button>}</td>}
+                <td className="r"><div className="row" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }}><Link className="btn sm" to={`/comprobante?tipo=venta&id=${v.id}`} target="_blank">Ticket</Link>{perfil.rol === 'gerente' && !v.anulada && <button className="btn sm ghost-bad" onClick={() => setAnular(v)}>Anular</button>}</div></td>
               </tr>
             ))}</tbody>
           </table></div>

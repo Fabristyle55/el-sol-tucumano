@@ -127,3 +127,29 @@ Si definís la variable `N8N_WEBHOOK_URL` con la URL de un webhook de n8n, el ba
 npm test
 ```
 Prueban el cálculo de insumos, las reservas, los faltantes y la proyección de compras.
+
+## Funciones agregadas (octubre 2026)
+
+| Función | Dónde | Qué hace |
+|---|---|---|
+| Cierre de caja | Despacho → Caja | El mostrador cuenta el efectivo al final del día y el sistema lo compara con lo vendido en efectivo (ventas + reservas retiradas). Muestra si sobra o falta. |
+| Vencimientos y ofertas | Despacho → Stock | La reventa se carga con fecha de vencimiento. El sistema avisa 3 días antes y permite poner el artículo en oferta (% de descuento). |
+| Mermas | Despacho → Stock → Merma | Lo que sobró, venció o se rompió sale del stock y queda registrado. En Planificación se sugiere el "extra para el local" según lo que sobró la última semana. |
+| Cuenta corriente | Cuentas corrientes | Los pedidos mayoristas pagados en cuenta corriente se suman al saldo al entregarlos. El gerente registra los pagos y ve las deudas vencidas (plazo por cliente). |
+| Hoja de reparto | Pedidos → Hoja de reparto | Pedidos con envío del día agrupados por localidad, con dirección, teléfono y monto a cobrar. Se imprime o se guarda en PDF. |
+| Costo y margen | Recetas (y costo por insumo en Stock) | Costo de cada producto según su receta y el margen mayorista y minorista. |
+| Pedidos recurrentes | Mis pedidos / Pedidos | "Repetir pedido" y pedido fijo semanal para mayoristas. Una función programada (`pedidos-fijos-cron`) los genera todas las noches a las 20 h como pendientes. |
+| Comprobantes | Pedidos, Mis pedidos, Despacho | Remito, comprobante de reserva y ticket de venta, listos para guardar en PDF. |
+| Avisos por mail | Automático | Mail al cliente cuando se recibe o confirma su pedido y cuando su reserva está lista. Ver abajo cómo activarlo. |
+| Reportes | Reportes | Ventas por mes, productos y reventa más vendidos, consumo de insumos y mayoristas contra minoristas. Exporta a Excel (.xlsx). |
+| Historial de cambios | Historial de cambios | Quién hizo cada acción y cuándo, con búsqueda, filtros y exportación a Excel. No se puede borrar ni modificar. |
+| App instalable (PWA) | Botón "Instalar la app" | Se puede agregar a la pantalla de inicio del celular o la PC y avisa cuando no hay conexión. |
+| Recorrido de demostración | Recorrido de demostración | Un pedido de punta a punta, paso a paso, usando las funciones reales del sistema. Ideal para la presentación. |
+
+### Activar los avisos por mail (opcional)
+
+1. Crear una cuenta gratis en [resend.com](https://resend.com) (100 mails por día) y generar una API key.
+2. En Netlify → Site configuration → Environment variables agregar:
+   - `RESEND_API_KEY` = la clave de Resend
+   - `MAIL_FROM` = por ejemplo `El Sol Siciliano <pedidos@tudominio.com>` (el dominio tiene que estar verificado en Resend; sin dominio propio, Resend solo deja mandar al mail de la cuenta).
+3. Volver a publicar el sitio. Sin estas variables el sistema funciona igual, solo que no manda mails.

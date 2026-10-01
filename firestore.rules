@@ -54,11 +54,32 @@ service cloud.firestore {
     match /ventas/{id}      { allow read: if personal(); allow write: if false; }
     match /movDespacho/{id} { allow read: if personal(); allow write: if false; }
 
+    // Caja y mermas del despacho: solo el personal.
+    match /cierres/{id}     { allow read: if personal(); allow write: if false; }
+    match /mermas/{id}      { allow read: if personal(); allow write: if false; }
+
+    // Cuenta corriente y pedidos fijos: el personal y el propio cliente.
+    match /movCuenta/{id} {
+      allow read: if personal() || (conSesion() && resource.data.clienteUid == request.auth.uid);
+      allow write: if false;
+    }
+    match /pedidosFijos/{id} {
+      allow read: if personal() || (conSesion() && resource.data.clienteUid == request.auth.uid);
+      allow write: if false;
+    }
+
     match /insumos/{id}     { allow read: if personal(); allow write: if false; }
     match /ordenes/{id}     { allow read: if personal(); allow write: if false; }
     match /compras/{id}     { allow read: if personal(); allow write: if false; }
     match /movimientos/{id} { allow read: if personal(); allow write: if false; }
-    match /actividad/{id}   { allow read: if personal(); allow write: if false; }
+    // Historial: lo escribe el backend. El gerente también deja constancia de lo que
+    // edita desde el navegador (recetas y precios), siempre a su nombre.
+    match /actividad/{id} {
+      allow read: if personal();
+      allow create: if gerente() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.texto is string && request.resource.data.texto.size() <= 300;
+      allow update, delete: if false;
+    }
     match /contadores/{id}  { allow read, write: if false; }
   }
 }

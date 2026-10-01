@@ -4,7 +4,7 @@ import { useAuth } from '../auth';
 import { useData } from '../data';
 import { Modal, Stepper, useAccion } from '../ui';
 import { ENTREGA_LABEL, TIPO_LABEL, cant, hoy, manana, money } from '../util';
-import { FORMAS_PAGO, MODOS_ENTREGA, PAGOS_DESPACHO, precioPara, precioArticulo, r3 } from '../../shared/negocio.js';
+import { FORMAS_PAGO, MODOS_ENTREGA, PAGOS_DESPACHO, estadoCuenta, idArticulo, precioPara, precioArticulo, r3 } from '../../shared/negocio.js';
 
 /**
  * Formulario de pedido.
@@ -13,15 +13,19 @@ import { FORMAS_PAGO, MODOS_ENTREGA, PAGOS_DESPACHO, precioPara, precioArticulo,
  * Mayoristas: productos elaborados por pedido; el gerente confirma.
  * Minoristas: artículos del despacho; queda "reservado" sin autorización.
  */
-export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInicial = 'mayorista' }) {
+/** Ítems de un pedido anterior para repetirlo: { productoId | articuloId: cantidad }. */
+const itemsDe = (p) => Object.fromEntries((p?.items || []).map((i) => [p.tipoCliente === 'minorista' ? (i.articuloId || idArticulo(i.productoId)) : i.productoId, i.cantidad]));
+
+export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInicial = 'mayorista', inicial = null }) {
   const { perfil } = useAuth();
-  const { productos, productosPorId, clientes, articulos } = useData();
+  const { productos, productosPorId, clientes, articulos, miCliente } = useData();
+  const registrado = inicial?.clienteId && clientes.some((c) => c.id === inicial.clienteId);
   const [d, setD] = useState({
-    clienteId: '_oc', ocasional: '', telefonoOcasional: '', direccionOcasional: '', tipoOcasional: tipoInicial === 'minorista' ? 'minorista' : 'mayorista',
+    clienteId: registrado ? inicial.clienteId : '_oc', ocasional: registrado ? '' : (inicial?.clienteNombre || ''), telefonoOcasional: inicial?.telefono || '', direccionOcasional: inicial?.direccion || '', tipoOcasional: tipoInicial === 'minorista' ? 'minorista' : 'mayorista',
     entrega: modo === 'web' && perfil.tipoCliente === 'minorista' ? hoy() : (tipoInicial === 'minorista' ? hoy() : manana()),
-    pago: modo === 'web' ? 'Transferencia' : 'Efectivo',
+    pago: inicial?.pago || (modo === 'web' ? 'Transferencia' : 'Efectivo'),
     modoEntrega: (modo === 'web' && perfil.tipoCliente === 'minorista') || tipoInicial === 'minorista' ? 'retiro' : 'envio',
-    notas: '', confirmar: false, items: carrito || {},
+    notas: '', confirmar: false, items: carrito || (inicial ? itemsDe(inicial) : {}),
   });
   const [error, setError] = useState('');
   const [ocupado, correr] = useAccion();
@@ -37,7 +41,12 @@ export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInic
   const mayoristas = clientes.filter((c) => (c.tipo || 'mayorista') === 'mayorista');
   const minoristas = clientes.filter((c) => c.tipo === 'minorista');
   const minFecha = minorista ? hoy() : manana();
-  const pagos = minorista ? PAGOS_DESPACHO : FORMAS_PAGO;
+  // Cuenta corriente: solo comercios mayoristas registrados.
+  const fichaCliente = modo === 'web' ? miCliente : elegido;
+  const conCuenta = !minorista && !!fichaCliente;
+  const pagos = minorista ? PAGOS_DESPACHO : FORMAS_PAGO.filter((x) => x !== 'Cuenta corriente' || conCuenta);
+  const cuenta = conCuenta ? estadoCuenta(fichaCliente, hoy()) : null;
+  const pagoSel = pagos.includes(d.pago) ? d.pago : pagos[0];
 
   // Al cambiar de tipo de cliente se vacía la lista (mayoristas eligen productos; minoristas, artículos del despacho)
   const cambiarCliente = (patch) => setD((x) => {
@@ -56,7 +65,7 @@ export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInic
     if (!d.entrega || d.entrega < minFecha) { setError(minorista ? 'La fecha de retiro no puede ser anterior a hoy.' : 'La entrega tiene que ser desde mañana.'); return; }
     const r = await correr(() => api('crear-pedido', {
       items: lineas.map(([id, cantidad]) => (minorista ? { articuloId: id, cantidad } : { productoId: id, cantidad })),
-      entrega: d.entrega, pago: d.pago, notas: d.notas, modoEntrega: d.modoEntrega,
+      entrega: d.entrega, pago: pagoSel, notas: d.notas, modoEntrega: d.modoEntrega,
       ...(modo === 'mostrador' ? {
         clienteId: d.clienteId === '_oc' ? null : d.clienteId, ocasional: d.ocasional, confirmar: d.confirmar,
         tipoOcasional: d.tipoOcasional, telefonoOcasional: d.telefonoOcasional, direccionOcasional: d.direccionOcasional,
@@ -125,7 +134,7 @@ export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInic
       )}
       <div className="fields2">
         <div className="field"><label htmlFor="d-ent">{d.modoEntrega === 'retiro' ? 'Fecha de retiro' : 'Fecha de entrega'}</label><input id="d-ent" type="date" min={minFecha} value={d.entrega} onChange={(e) => set('entrega', e.target.value)} /></div>
-        <div className="field"><label htmlFor="d-pago">Forma de pago</label><select id="d-pago" value={d.pago} onChange={(e) => set('pago', e.target.value)}>{pagos.map((x) => <option key={x}>{x}</option>)}</select></div>
+        <div className="field"><label htmlFor="d-pago">Forma de pago</label><select id="d-pago" value={pagoSel} onChange={(e) => set('pago', e.target.value)}>{pagos.map((x) => <option key={x}>{x}</option>)}</select></div>
       </div>
       <div className="field"><label htmlFor="d-notas">Notas</label><textarea id="d-notas" rows={2} value={d.notas} onChange={(e) => set('notas', e.target.value)} placeholder={minorista ? 'Horario en que pasa a retirar…' : 'Horario de entrega, referencias…'} /></div>
       {modo === 'mostrador' && perfil.rol === 'gerente' && !minorista && (
@@ -136,6 +145,11 @@ export default function PedidoModal({ modo, carrito, onClose, onCreado, tipoInic
           ? (modo === 'web' ? <>Tu reserva queda lista; la preparamos con lo que hay en el despacho. <b>No hace falta esperar confirmación.</b></> : 'Queda reservada para retirar; la preparás desde Despacho → Reservas.')
           : (modo === 'web' ? <>Tu pedido queda <b>pendiente de confirmación</b>. El negocio lo revisa y te avisa.</> : 'Queda pendiente hasta que el gerente lo confirme.')}
       </p>
+      {pagoSel === 'Cuenta corriente' && cuenta && cuenta.saldo > 0 && (
+        <div className={`note ${cuenta.estado === 'vencida' ? 'bad' : 'warn'}`}>
+          {modo === 'web' ? 'Tu cuenta corriente' : 'La cuenta corriente de este cliente'} tiene un saldo de <b className="num">{money(cuenta.saldo)}</b>{cuenta.estado === 'vencida' ? ` vencido hace ${cuenta.dias - cuenta.plazo} días${modo === 'web' ? '. Elegí otra forma de pago o comunicate con el local.' : '.'}` : '.'}
+        </div>
+      )}
       {error && <div className="note bad">{error}</div>}
       <div className="row" style={{ justifyContent: 'flex-end' }}>
         <button className="btn" type="button" onClick={onClose}>{modo === 'web' ? 'Seguir eligiendo' : 'Cerrar'}</button>

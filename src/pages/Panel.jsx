@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useData } from '../data';
 import { cuando, dRel, dShort, fq, hoy, manana, money, sumarDias } from '../util';
-import { proyeccion, vaAProduccion } from '../../shared/negocio.js';
+import { estadoCuenta, proyeccion, vaAProduccion, vencimiento } from '../../shared/negocio.js';
 import { Contador } from '../ui';
 
 const COL = { warn: 'var(--warn)', info: 'var(--info)', bad: 'var(--bad)', ok: 'var(--ok)' };
@@ -29,6 +29,12 @@ export default function Panel() {
   }
   al.forEach((i) => attn.push(['bad', `${i.nombre} va a quedar debajo del stock de seguridad`, `Proyectado ${fq(i.proyectado, i.unidad)} ${i.unidad} · seguridad ${fq(i.seguridad, i.unidad)} ${i.unidad}`, '/compras', 'Ver compra']));
   if (bajosDespacho.length) attn.push(['warn', `${bajosDespacho.length} artículos del despacho con poco stock`, bajosDespacho.slice(0, 3).map((a) => a.nombre).join(', ') + (bajosDespacho.length > 3 ? '…' : ''), '/despacho?t=stock', 'Ver']);
+  const porVencer = d.articulos.filter((a) => { const v = vencimiento(a, T0); return v && v.estado !== 'ok'; });
+  if (porVencer.length) attn.push(['warn', `${porVencer.length} productos del despacho vencen pronto o ya vencieron`, porVencer.slice(0, 3).map((a) => a.nombre).join(', ') + (porVencer.length > 3 ? '…' : ''), '/despacho?t=stock', 'Ver']);
+  const morosos = d.clientes.filter((c) => estadoCuenta(c, T0).estado === 'vencida');
+  if (morosos.length) attn.push(['bad', `${morosos.length === 1 ? '1 comercio tiene' : `${morosos.length} comercios tienen`} la cuenta corriente vencida`, morosos.map((c) => `${c.nombre} (${money(c.saldo)})`).join(', '), '/cuentas?f=vencida', 'Ver cuentas']);
+  const ayer = sumarDias(T0, -1);
+  if (d.ventas.some((v) => v.dia === ayer) && !d.cierres.some((c) => c.dia === ayer)) attn.push(['warn', 'Ayer no se hizo el cierre de caja del despacho', 'El mostrador tiene que contar el efectivo al final del día', '/despacho?t=caja', 'Ir a caja']);
   if (listos.length) attn.push(['ok', `${listos.length} pedidos listos para salir a reparto`, listos.slice(0, 3).map((o) => o.clienteNombre).join(', ') + (listos.length > 3 ? '…' : ''), '/pedidos?f=listo', 'Ver']);
 
   return (
@@ -52,7 +58,7 @@ export default function Panel() {
           ) : <div className="empty">Todo en orden por ahora.</div>}
         </section>
         <section className="card">
-          <div className="card-h"><h2>Pedidos por día de entrega</h2><div className="legend"><span style={{ '--c': 'var(--verde)' }}>Web</span><span style={{ '--c': 'var(--rojo)' }}>Mostrador</span></div></div>
+          <div className="card-h"><h2>Pedidos por día de entrega</h2><div className="legend"><span style={{ '--c': 'var(--verde)' }}>Web y fijos</span><span style={{ '--c': 'var(--rojo)' }}>Mostrador</span></div></div>
           <Grafico pedidos={d.pedidos} />
         </section>
       </div>
@@ -77,7 +83,7 @@ function Grafico({ pedidos }) {
   const dias = []; for (let k = -6; k <= 1; k++) dias.push(sumarDias(T, k));
   const data = dias.map((dd) => {
     const os = pedidos.filter((o) => o.entrega === dd && o.estado !== 'cancelado');
-    return { d: dd, w: os.filter((o) => o.canal === 'web').length, m: os.filter((o) => o.canal === 'mostrador').length };
+    return { d: dd, w: os.filter((o) => o.canal !== 'mostrador').length, m: os.filter((o) => o.canal === 'mostrador').length };
   });
   const max = Math.max(4, ...data.map((x) => x.w + x.m)); const top = Math.ceil(max / 4) * 4;
   const W = 380; const H = 210; const L = 26; const B = 26; const Tp = 14; const bw = (W - L) / dias.length;
