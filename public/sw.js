@@ -1,7 +1,7 @@
 // Service worker de El Sol Siciliano: permite instalar el sistema como app y
 // que abra aunque la conexión esté mala. Los datos siempre se piden en vivo a
 // Firebase y al backend; acá solo se guardan los archivos de la aplicación.
-const CACHE = 'el-sol-v1';
+const CACHE = 'el-sol-v2';
 const BASE = ['/app', '/marca/sol-192.png', '/marca/sol-512.png', '/marca/logo.jpg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
