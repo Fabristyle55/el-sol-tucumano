@@ -3,6 +3,12 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# Datos públicos de Firebase que el navegador necesita (no son secretos).
+# La clave privada (FIREBASE_PRIVATE_KEY) se sigue controlando.
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "FIREBASE_PROJECT_ID,FIREBASE_CLIENT_EMAIL"
+  SECRETS_SCAN_SMART_DETECTION_OMIT_VALUES = "AIzaSyC2iHZ4Bikyxypm-W-637Ha3ohzx8L63u0"
+
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["firebase-admin"]
