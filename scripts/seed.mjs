@@ -83,6 +83,7 @@ const USUARIOS = [
   ['mostrador@elsol.demo', 'Mostrador (demo)', 'mostrador'],
   ['panadero@elsol.demo', 'Panadero (demo)', 'panadero'],
   ['deposito@elsol.demo', 'Depósito (demo)', 'deposito'],
+  ['repartidor@elsol.demo', 'Repartidor (demo)', 'repartidor'],
   ['cliente@elsol.demo', 'Pedro (Almacén Don Pedro)', 'cliente', 'mayorista', 'c1'],
   ['minorista@elsol.demo', 'Laura Gómez', 'cliente', 'minorista', 'm1'],
 ];
