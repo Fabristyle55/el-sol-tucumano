@@ -70,7 +70,7 @@ export function endpoint(roles, fn) {
   };
 }
 
-const ETIQUETA_ROL = { gerente: 'Gerente', mostrador: 'Mostrador', panadero: 'Panadero', deposito: 'Depósito', cliente: 'Cliente' };
+const ETIQUETA_ROL = { gerente: 'Gerente', mostrador: 'Mostrador', panadero: 'Panadero', deposito: 'Depósito', repartidor: 'Repartidor', cliente: 'Cliente' };
 
 /** Registra una línea en la bitácora de actividad (trazabilidad). */
 export function registrar(t, yo, texto) {
@@ -180,6 +180,7 @@ export async function avisarCliente(evento, pedido) {
       recibido: [`Recibimos tu pedido #${n}`, `Hola ${esc(pedido.clienteNombre)}, recibimos tu pedido para el ${fecha}. Te avisamos cuando lo confirmemos.`],
       confirmado: [`Pedido #${n} confirmado`, `Tu pedido para el ${fecha} está confirmado y entra en la producción del día.`],
       reserva: [`Reserva #${n} recibida`, `Te guardamos estos productos en el despacho para el ${fecha}. Te avisamos cuando esté lista.`],
+      'en-camino': [`Tu pedido #${n} está en camino`, 'Nuestro repartidor ya salió con tu pedido. Llega en el transcurso del día.'],
       'reserva-lista': [`Tu reserva #${n} está lista`, 'Ya preparamos tu reserva. Podés pasar a retirarla por el despacho.'],
     };
     const t = textos[evento];
