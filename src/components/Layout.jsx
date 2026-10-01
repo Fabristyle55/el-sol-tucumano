@@ -17,12 +17,14 @@ export default function Layout() {
   const [titulo, sub] = VISTAS[vista] || ['', ''];
 
   const nPend = d.pedidos.filter((p) => p.estado === 'pendiente').length;
+  const nRes = d.pedidos.filter((p) => p.tipoCliente === 'minorista' && ['reservado', 'listo'].includes(p.estado)).length;
   const nOps = d.ordenes.filter((o) => o.estado !== 'terminada').length;
   const nAl = perfil.rol === 'cliente' ? 0
     : proyeccion({ insumos: d.insumos, ordenes: d.ordenes, pedidos: d.pedidos, compras: d.compras, productosPorId: d.productosPorId }).filter((i) => i.alerta).length;
   const badge = {
     pedidos: nPend ? <span className="badge warn" title="Por confirmar">{nPend}</span> : null,
     produccion: nOps ? <span className="badge warn" title="Órdenes abiertas">{nOps}</span> : null,
+    despacho: nRes ? <span className="badge" title="Reservas para preparar o entregar">{nRes}</span> : null,
     compras: nAl ? <span className="badge" title="Insumos en alerta">{nAl}</span> : null,
   };
   const fechaLarga = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());

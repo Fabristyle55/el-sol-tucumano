@@ -44,6 +44,9 @@ export function DataProvider({ children }) {
   const movimientos = useCol(staff ? () => query(collection(db, 'movimientos'), orderBy('fecha', 'desc'), limit(40)) : null, [staff]);
   const usuarios = useCol(rol === 'gerente' ? () => collection(db, 'usuarios') : null, [rol]);
   const opiniones = useCol(rol ? () => collection(db, 'opiniones') : null, [rol]);
+  const articulos = useCol(rol ? () => collection(db, 'articulos') : null, [rol]);
+  const ventas = useCol(staff ? () => query(collection(db, 'ventas'), where('dia', '>=', sumarDias(hoy(), -7))) : null, [staff]);
+  const movDespacho = useCol(staff ? () => query(collection(db, 'movDespacho'), orderBy('fecha', 'desc'), limit(40)) : null, [staff]);
 
   const value = useMemo(() => {
     const prods = [...productos.data].sort((a, b) => (a.orden ?? 99) - (b.orden ?? 99) || a.nombre.localeCompare(b.nombre));
@@ -55,10 +58,12 @@ export function DataProvider({ children }) {
       pedidos: pedidos.data, ordenes: ordenes.data, compras: compras.data,
       clientes: [...clientes.data].sort((a, b) => a.nombre.localeCompare(b.nombre)),
       actividad: actividad.data, movimientos: movimientos.data, usuarios: usuarios.data, opiniones: opiniones.data,
+      articulos: [...articulos.data].sort((a, b) => (a.tipo === b.tipo ? 0 : a.tipo === 'elaborado' ? -1 : 1) || (a.categoria || '').localeCompare(b.categoria || '') || a.nombre.localeCompare(b.nombre)),
+      ventas: ventas.data, movDespacho: movDespacho.data,
       cargando: productos.cargando || pedidos.cargando || insumos.cargando,
       error: errores[0] || null,
     };
-  }, [productos, insumos, pedidos, ordenes, compras, clientes, actividad, movimientos, usuarios, opiniones]);
+  }, [productos, insumos, pedidos, ordenes, compras, clientes, actividad, movimientos, usuarios, opiniones, articulos, ventas, movDespacho]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

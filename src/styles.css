@@ -117,7 +117,7 @@ main { padding-block: 28px 64px; padding-inline: clamp(16px, 3vw, 40px); min-wid
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px }
 .plan { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) }
 .grid32 { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px }
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px }
 .kpi { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 16px; text-align: left; display: flex; flex-direction: column; gap: 2px; box-shadow: var(--shadow-sm); text-decoration: none; color: inherit; transition: transform .35s var(--ease), box-shadow .35s, border-color .3s; animation: popUp .55s var(--ease) both }
 .kpi:nth-child(2) { animation-delay: .07s } .kpi:nth-child(3) { animation-delay: .14s } .kpi:nth-child(4) { animation-delay: .21s }
 .kpi::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--tricolor); transform: scaleX(0); transform-origin: left; transition: transform .45s var(--ease) }
@@ -309,7 +309,7 @@ tr.detail td { background: var(--surface-2); font-size: 13px }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1180px) { .plan { grid-template-columns: minmax(0, 1fr) } }
-@media (max-width: 980px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) } .grid2, .grid32 { grid-template-columns: minmax(0, 1fr) } }
+@media (max-width: 980px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) } .pos { grid-template-columns: minmax(0, 1fr) } .pos-ticket { position: static } .grid2, .grid32 { grid-template-columns: minmax(0, 1fr) } }
 @media (max-width: 860px) {
   .app { grid-template-columns: minmax(0, 1fr) }
   .side { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 12px; gap: 12px }
@@ -393,4 +393,48 @@ tr.detail td { background: var(--surface-2); font-size: 13px }
 .mini-actual img { width: 100%; height: 100%; object-fit: cover }
 .mini-actual .pan-svg { width: 100%; animation: none }
 @media (max-width: 560px) { .op-resumen { grid-template-columns: 80px 1fr } .op-barras { grid-column: 1 / -1 } }
+
+/* ---------- Despacho ---------- */
+@keyframes masUno { 0% { opacity: 0; transform: translate(-50%, 0) scale(.6) } 20% { opacity: 1; transform: translate(-50%, -10px) scale(1.1) } 100% { opacity: 0; transform: translate(-50%, -60px) scale(1) } }
+@keyframes checkIn { 0% { transform: scale(0) rotate(-45deg) } 60% { transform: scale(1.2) rotate(8deg) } 100% { transform: scale(1) } }
+@keyframes lineaIn { from { opacity: 0; transform: translateX(16px); background: var(--verde-soft) } to { opacity: 1; transform: none; background: transparent } }
+.tabs.grandes button { padding: 9px 18px; font-size: 14px }
+.pos { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start }
+.pos .buscar { flex: 1 1 200px; min-width: 160px }
+.pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px }
+.pos-item { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; text-align: left; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; transition: transform .25s var(--ease), box-shadow .25s, border-color .25s; animation: popUp .4s var(--ease) both }
+.pos-item:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--verde) }
+.pos-item:active { transform: scale(.96) }
+.pos-item.en { border-color: var(--verde); box-shadow: 0 0 0 2px var(--verde-soft) }
+.pos-item.sin { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none }
+.pos-item b { font-size: 13px; line-height: 1.25; min-height: 2.5em }
+.pos-item .precio { color: var(--verde); font-weight: 700; font-size: 13px }
+.pos-img { width: 100%; aspect-ratio: 4/3; border-radius: 10px; overflow: hidden; display: grid; place-items: center; background: var(--surface-2) }
+.pos-img img { width: 100%; height: 100%; object-fit: cover }
+.pos-img .pan-svg { width: 82%; animation: none }
+.pos-cant { position: absolute; top: 6px; right: 6px; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 99px; display: grid; place-items: center; background: var(--rojo); color: #fff; font-size: 12px; font-weight: 800; animation: badgePop .35s var(--ease) both }
+.stock-chip { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 99px; background: var(--ok-soft); color: var(--ok) }
+.stock-chip.warn { background: var(--warn-soft); color: var(--warn) } .stock-chip.bad { background: var(--rojo-soft); color: var(--rojo) }
+.pos-ticket { position: sticky; top: 18px; display: flex; flex-direction: column; gap: 12px }
+.ticket-lineas { display: flex; flex-direction: column }
+.ticket-linea { display: grid; grid-template-columns: minmax(0, 1fr) auto 76px; gap: 8px; align-items: center; padding: 9px 4px; border-bottom: 1px dashed var(--line); border-radius: 8px; animation: lineaIn .45s var(--ease) both }
+.ticket-linea b { font-size: 13px; display: block }
+.ticket-linea .sub { text-align: right; font-weight: 700 }
+.ticket-linea .step button { width: 28px; height: 28px }
+.ticket-linea .step input { width: 52px }
+.pos-ticket .total span:last-child { animation: bump .35s var(--ease) }
+.btn.cobrar { width: 100%; padding: 14px; font-size: 16px }
+.venta-ok { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 10px; text-align: center; animation: popUp .4s var(--ease) both }
+.venta-ok .check { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--verde); color: #fff; font-size: 28px; font-weight: 800; animation: checkIn .55s var(--ease) both; box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--verde) 80%, transparent) }
+.mas-uno { position: fixed; z-index: 60; pointer-events: none; font-weight: 800; color: var(--verde); font-size: 15px; animation: masUno .8s var(--ease) forwards }
+.reservas { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px }
+.reserva { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-sm); animation: popUp .45s var(--ease) both; transition: transform .3s var(--ease), box-shadow .3s }
+.reserva:hover { transform: translateY(-3px); box-shadow: var(--shadow) }
+.reserva ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: 14px }
+.reserva li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding-bottom: 3px }
+.prod.agotado { opacity: .6 }
+.op-barras.pagos div { grid-template-columns: 110px minmax(0, 1fr) 90px }
+.op-barras.pagos b { background: var(--verde) }
+@media (max-width: 980px) { .pos { grid-template-columns: minmax(0, 1fr) } .pos-ticket { position: static; order: -1 } }
+@media (max-width: 560px) { .pos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px } .pos-item b { min-height: 0 } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important } }

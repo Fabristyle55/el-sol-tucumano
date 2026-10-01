@@ -14,6 +14,25 @@ export function precioPara(producto, tipo) {
 }
 export const ZONA = 'America/Argentina/Buenos_Aires';
 
+// ---------- Despacho (venta al público) ----------
+export const CATEGORIAS_DESPACHO = ['Panificados', 'Lácteos', 'Bebidas', 'Fiambres', 'Almacén'];
+export const PAGOS_DESPACHO = ['Efectivo', 'Transferencia', 'Débito', 'Crédito', 'Mercado Pago'];
+/** Id del artículo del despacho que corresponde a un producto elaborado. */
+export const idArticulo = (productoId) => `e-${productoId}`;
+/** Precio de un artículo del despacho: los elaborados usan el precio minorista del producto. */
+export function precioArticulo(articulo, productosPorId = {}) {
+  if (articulo?.productoId) return precioPara(productosPorId[articulo.productoId] || {}, 'minorista') || articulo.precio || 0;
+  return articulo?.precio || 0;
+}
+/** Cantidad válida según la unidad: enteros para "u", hasta 3 decimales para "kg". */
+export function cantidadValida(n, unidad) {
+  const x = Number(n);
+  if (!(x > 0) || x > 10000) return 0;
+  return unidad === 'kg' ? Math.round(x * 1000) / 1000 : Math.floor(x);
+}
+/** Los pedidos minoristas se arman con lo del despacho; no entran en la planificación. */
+export const vaAProduccion = (pedido) => pedido.tipoCliente !== 'minorista';
+
 export const r3 = (n) => Math.round(n * 1000) / 1000;
 
 /** Fecha de hoy (más un desplazamiento en días) en Argentina, como 'AAAA-MM-DD'. */
@@ -78,7 +97,7 @@ export function enCamino(compras) {
  */
 export function proyeccion({ insumos, ordenes, pedidos, compras, productosPorId }) {
   const res = reservado(ordenes);
-  const pend = explotar(totalesPorProducto(pedidos.filter((p) => p.estado === 'confirmado')), productosPorId);
+  const pend = explotar(totalesPorProducto(pedidos.filter((p) => p.estado === 'confirmado' && vaAProduccion(p))), productosPorId);
   const cam = enCamino(compras);
   return insumos.map((i) => {
     const proyectado = r3(i.stock - (res[i.id] || 0) - (pend[i.id] || 0) + (cam[i.id] || 0));

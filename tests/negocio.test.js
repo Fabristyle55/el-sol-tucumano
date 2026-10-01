@@ -50,3 +50,27 @@ test('precio según tipo de cliente', () => {
   assert.equal(precioPara({ precio: 100, precioMinorista: 130 }, 'mayorista'), 100);
   assert.equal(precioPara({ precio: 100 }, 'minorista'), 100); // sin precio minorista usa el mayorista
 });
+
+import { precioArticulo, cantidadValida, vaAProduccion } from '../shared/negocio.js';
+test('precio de artículos del despacho', () => {
+  const prods = { pf: { precio: 2400, precioMinorista: 3000 } };
+  assert.equal(precioArticulo({ productoId: 'pf' }, prods), 3000); // elaborado: precio minorista del producto
+  assert.equal(precioArticulo({ precio: 1500 }, prods), 1500); // reventa: su propio precio
+});
+test('cantidades por unidad y por kilo', () => {
+  assert.equal(cantidadValida(2.7, 'u'), 2);
+  assert.equal(cantidadValida(0.2504, 'kg'), 0.25);
+  assert.equal(cantidadValida(0, 'u'), 0);
+  assert.equal(cantidadValida(-1, 'kg'), 0);
+});
+test('las reservas minoristas no entran en la producción', () => {
+  assert.equal(vaAProduccion({ tipoCliente: 'minorista' }), false);
+  assert.equal(vaAProduccion({ tipoCliente: 'mayorista' }), true);
+  assert.equal(vaAProduccion({}), true);
+  const [h] = proyeccion({
+    insumos: [{ id: 'h000', stock: 100, seguridad: 10, pack: 25 }], ordenes: [], compras: [],
+    pedidos: [{ estado: 'confirmado', tipoCliente: 'minorista', items: [{ productoId: 'pf', cantidad: 50 }] }],
+    productosPorId: { pf: { receta: { h000: 1 } } },
+  });
+  assert.equal(h.proyectado, 100);
+});

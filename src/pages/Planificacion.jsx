@@ -4,7 +4,7 @@ import { api } from '../api';
 import { useData } from '../data';
 import { Pill, useAccion } from '../ui';
 import { OPEST, dRel, fq, hoy, manana } from '../util';
-import { explotar, reservado, r3, totalesPorProducto } from '../../shared/negocio.js';
+import { explotar, reservado, r3, totalesPorProducto, vaAProduccion } from '../../shared/negocio.js';
 
 export default function Planificacion() {
   const { pedidos, productos, productosPorId, insumosPorId, ordenes } = useData();
@@ -13,9 +13,10 @@ export default function Planificacion() {
   const [ocupado, correr] = useAccion();
   const D = params.get('d') || manana();
 
-  const fechas = [...new Set(pedidos.filter((p) => ['confirmado', 'pendiente', 'produccion'].includes(p.estado) && p.entrega >= hoy()).map((p) => p.entrega).concat([manana(), D]))].sort();
-  const conf = pedidos.filter((p) => p.entrega === D && p.estado === 'confirmado').sort((a, b) => a.numero - b.numero);
-  const pend = pedidos.filter((p) => p.entrega === D && p.estado === 'pendiente');
+  const fechas = [...new Set(pedidos.filter((p) => vaAProduccion(p) && ['confirmado', 'pendiente', 'produccion'].includes(p.estado) && p.entrega >= hoy()).map((p) => p.entrega).concat([manana(), D]))].sort();
+  // Solo los pedidos mayoristas se producen por pedido (los minoristas salen del despacho).
+  const conf = pedidos.filter((p) => p.entrega === D && p.estado === 'confirmado' && vaAProduccion(p)).sort((a, b) => a.numero - b.numero);
+  const pend = pedidos.filter((p) => p.entrega === D && p.estado === 'pendiente' && vaAProduccion(p));
   const opsD = ordenes.filter((o) => o.fecha === D).sort((a, b) => a.numero - b.numero);
   const ex = extra[D] || {};
   const tot = totalesPorProducto(conf);
@@ -58,7 +59,7 @@ export default function Planificacion() {
                 <td className="r num" style={{ fontWeight: 600 }}>{prod[p.id] || '—'}</td></tr>
             ))}</tbody>
           </table></div>
-          <p className="muted small" style={{ margin: '10px 0 0' }}>"Extra local" es lo que se hornea de más para vender en el local ese día.</p>
+          <p className="muted small" style={{ margin: '10px 0 0' }}>"Extra local" es lo que se hornea de más para vender en el despacho. Cuando el panadero termina la orden, pasa solo al stock del despacho.</p>
         </section>
         <section className="card">
           <div className="card-h"><h2>2 · Insumos requeridos</h2><span className="muted small">según recetas</span></div>

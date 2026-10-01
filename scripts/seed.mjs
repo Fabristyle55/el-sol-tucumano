@@ -55,6 +55,24 @@ const CLIENTES = [
   ['c6', 'Autoservicio Lules', 'Lules', '25 de Mayo 112', '381 481-3320'],
 ];
 
+// Artículos de reventa del despacho: [id, nombre, categoría, unidad, precio, stock, mínimo]
+const REVENTA = [
+  ['r-leche', 'Leche entera 1 l', 'Lácteos', 'u', 1500, 24, 10],
+  ['r-yogur', 'Yogur bebible frutilla 1 l', 'Lácteos', 'u', 2600, 12, 6],
+  ['r-queso', 'Queso cremoso', 'Lácteos', 'kg', 9800, 4.5, 2],
+  ['r-manteca', 'Manteca 200 g', 'Lácteos', 'u', 2400, 10, 5],
+  ['r-jamon', 'Jamón cocido', 'Fiambres', 'kg', 14500, 3.2, 1.5],
+  ['r-salame', 'Salame milán', 'Fiambres', 'kg', 16800, 1.1, 1],
+  ['r-mortadela', 'Mortadela', 'Fiambres', 'kg', 8900, 2.4, 1],
+  ['r-cola', 'Gaseosa cola 2,25 l', 'Bebidas', 'u', 3900, 18, 8],
+  ['r-naranja', 'Gaseosa naranja 2,25 l', 'Bebidas', 'u', 3600, 6, 8],
+  ['r-agua', 'Agua mineral 1,5 l', 'Bebidas', 'u', 1400, 20, 8],
+  ['r-dulce', 'Dulce de leche 400 g', 'Almacén', 'u', 3200, 9, 4],
+  ['r-mermelada', 'Mermelada de durazno 454 g', 'Almacén', 'u', 2900, 3, 4],
+];
+// Stock inicial de los elaborados en el despacho (lo que quedó de la producción del día)
+const STOCK_ELABORADOS = { pf: 22, v6: 14, v12: 6, ph: 9, ro: 7, to: 5, pp: 11 };
+
 const MINORISTAS = [
   ['m1', 'Laura Gómez', 'Yerba Buena', 'Perú 455', '381 512-3344'],
   ['m2', 'Martín Ibáñez', 'San Miguel de Tucumán', 'Lamadrid 790', '381 598-1122'],
@@ -85,8 +103,21 @@ async function main() {
     b.set(db.doc(`clientes/${id}`), { nombre, tipo: 'mayorista', localidad, direccion, telefono }, { merge: true }));
   MINORISTAS.forEach(([id, nombre, localidad, direccion, telefono]) =>
     b.set(db.doc(`clientes/${id}`), { nombre, contacto: nombre, tipo: 'minorista', localidad, direccion, telefono }, { merge: true }));
+  // Despacho: un artículo por cada producto elaborado + artículos de reventa.
+  // merge: true para no pisar el stock si ya existe.
+  const existentes = new Set((await db.collection('articulos').get()).docs.map((d) => d.id));
+  PRODUCTOS.forEach(([id, nombre]) => {
+    const datos = { nombre, productoId: id, tipo: 'elaborado', categoria: 'Panificados', unidad: 'u', minimo: 5, activo: true };
+    if (!existentes.has(`e-${id}`)) datos.stock = STOCK_ELABORADOS[id] || 0;
+    b.set(db.doc(`articulos/e-${id}`), datos, { merge: true });
+  });
+  REVENTA.forEach(([id, nombre, categoria, unidad, precio, stock, minimo]) => {
+    const datos = { nombre, tipo: 'reventa', categoria, unidad, precio, minimo, activo: true };
+    if (!existentes.has(id)) datos.stock = stock;
+    b.set(db.doc(`articulos/${id}`), datos, { merge: true });
+  });
   await b.commit();
-  console.log('✓ Insumos, productos y clientes');
+  console.log('✓ Insumos, productos, clientes y artículos del despacho');
 
   for (const [email, nombre, rol, tipoCliente, clienteId] of USUARIOS) {
     const u = await usuario(email, nombre);
@@ -135,33 +166,59 @@ async function main() {
     await bp.commit();
     console.log(`✓ ${ejemplos.length} pedidos de ejemplo`);
   }
-  // Pedidos minoristas de ejemplo (se agregan una sola vez, aunque ya haya otros pedidos)
-  const hayMin = await db.collection('pedidos').where('tipoCliente', '==', 'minorista').limit(1).get();
-  if (!process.argv.includes('--sin-pedidos') && hayMin.empty) {
-    const prod = Object.fromEntries(PRODUCTOS.map(([id, nombre, , , precioMinorista]) => [id, { nombre, precio: precioMinorista }]));
+  // Reservas minoristas de ejemplo (salen del despacho). Se rehacen las de ejemplo anteriores.
+  if (!process.argv.includes('--sin-pedidos')) {
+    const viejas = await db.collection('pedidos').where('tipoCliente', '==', 'minorista').get();
+    const bd = db.batch(); let borradas = 0;
+    viejas.docs.forEach((d) => { if (d.data().creadoPor === 'Datos de ejemplo') { bd.delete(d.ref); borradas++; } });
+    if (borradas) await bd.commit();
+    const precioArt = (aid) => {
+      const r = REVENTA.find((x) => x[0] === aid); if (r) return { nombre: r[1], precio: r[4], unidad: r[3] };
+      const p = PRODUCTOS.find((x) => `e-${x[0]}` === aid); return { nombre: p[1], precio: p[4], unidad: 'u', productoId: p[0] };
+    };
     const uidMin = (await auth.getUserByEmail('minorista@elsol.demo')).uid;
-    const M = fechaAR(1);
+    const H = fechaAR(0);
     const ejemplos = [
-      ['m1', 'Laura Gómez', 'Yerba Buena', 'Perú 455', uidMin, 'web', 'retiro', { pf: 2, ro: 1 }, 'pendiente'],
-      ['m2', 'Martín Ibáñez', 'San Miguel de Tucumán', 'Lamadrid 790', null, 'mostrador', 'envio', { pp: 2, v6: 1 }, 'confirmado'],
-      [null, 'Rosa (cliente del local)', '', '', null, 'mostrador', 'retiro', { to: 1, v12: 1 }, 'confirmado'],
+      ['m1', 'Laura Gómez', 'Yerba Buena', 'Perú 455', uidMin, 'web', { 'e-pf': 2, 'e-ro': 1, 'r-leche': 2 }],
+      ['m2', 'Martín Ibáñez', 'San Miguel de Tucumán', 'Lamadrid 790', null, 'mostrador', { 'e-pp': 2, 'r-cola': 1, 'r-jamon': 0.25 }],
+      [null, 'Rosa (clienta del local)', '', '', null, 'mostrador', { 'e-to': 1, 'r-queso': 0.3 }],
     ];
     await db.runTransaction(async (t) => {
       const cref = db.doc('contadores/pedidos');
       const c = await t.get(cref);
       let n = c.exists ? c.data().valor : 1000;
-      for (const [cid, nombre, localidad, direccion, uid, canal, modoEntrega, its, estado] of ejemplos) {
-        const items = Object.entries(its).map(([productoId, cantidad]) => ({ productoId, nombre: prod[productoId].nombre, cantidad, precio: prod[productoId].precio }));
+      for (const [cid, nombre, localidad, direccion, uid, canal, its] of ejemplos) {
+        const items = Object.entries(its).map(([articuloId, cantidad]) => { const a = precioArt(articuloId); return { articuloId, productoId: a.productoId || null, nombre: a.nombre, unidad: a.unidad, cantidad, precio: a.precio }; });
         t.set(db.collection('pedidos').doc(), {
           numero: ++n, clienteId: cid, clienteUid: uid, clienteNombre: nombre, localidad, direccion, telefono: '',
-          tipoCliente: 'minorista', modoEntrega, canal, entrega: M, items,
-          total: items.reduce((a, i) => a + i.cantidad * i.precio, 0), pago: 'Efectivo', notas: '', estado,
+          tipoCliente: 'minorista', modoEntrega: 'retiro', canal, entrega: H, items,
+          total: Math.round(items.reduce((a, i) => a + i.cantidad * i.precio, 0)), pago: 'Efectivo', notas: '', estado: 'reservado',
           creado: FieldValue.serverTimestamp(), creadoPor: 'Datos de ejemplo',
         });
       }
       t.set(cref, { valor: n });
     });
-    console.log(`✓ ${ejemplos.length} pedidos minoristas de ejemplo`);
+    console.log(`✓ ${ejemplos.length} reservas minoristas de ejemplo`);
+
+    // Ventas de ejemplo del despacho de hoy (solo si todavía no hay ventas)
+    const hayVentas = await db.collection('ventas').limit(1).get();
+    if (hayVentas.empty) {
+      const tickets = [
+        [{ 'e-pf': 1, 'r-leche': 1 }, 'Efectivo'], [{ 'e-v6': 2 }, 'Mercado Pago'], [{ 'e-ro': 1, 'r-cola': 1 }, 'Débito'],
+        [{ 'r-jamon': 0.2, 'r-queso': 0.25, 'e-pf': 1 }, 'Efectivo'], [{ 'e-pp': 1, 'r-agua': 2 }, 'Transferencia'], [{ 'e-ph': 1 }, 'Efectivo'],
+      ];
+      const bv = db.batch();
+      tickets.forEach(([its, pago], k) => {
+        const items = Object.entries(its).map(([articuloId, cantidad]) => { const a = precioArt(articuloId); return { articuloId, nombre: a.nombre, unidad: a.unidad, cantidad, precio: a.precio, subtotal: Math.round(cantidad * a.precio) }; });
+        bv.set(db.collection('ventas').doc(), {
+          numero: k + 1, fecha: new Date(Date.now() - (6 - k) * 50 * 60000), dia: fechaAR(0), items, pago, cliente: '',
+          total: items.reduce((a, i) => a + i.subtotal, 0), vendedor: 'Mostrador (demo)', anulada: false,
+        });
+      });
+      bv.set(db.doc('contadores/ventas'), { valor: tickets.length });
+      await bv.commit();
+      console.log(`✓ ${tickets.length} ventas de ejemplo en el despacho`);
+    }
   }
 
   console.log('\nListo. Iniciá la app con "npm run dev" y entrá con gerente@elsol.demo / ' + PASS);

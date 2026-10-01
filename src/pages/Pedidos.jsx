@@ -4,10 +4,10 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { useData } from '../data';
 import { Modal, Pill, Vacio, Cargando, useAccion } from '../ui';
-import { EST, ENTREGA_LABEL, TIPO_LABEL, dRel, dShort, hhmm, aFecha, money } from '../util';
+import { ENTREGA_LABEL, TIPO_LABEL, cant, dRel, dShort, estadoDe, hhmm, aFecha, money } from '../util';
 import PedidoModal from '../components/PedidoModal';
 
-const FILTROS = [['activos', 'Activos'], ['pendiente', 'Por confirmar'], ['confirmado', 'Confirmados'], ['produccion', 'En producción'], ['listo', 'Listos'], ['entregado', 'Entregados'], ['cancelado', 'Cancelados']];
+const FILTROS = [['activos', 'Activos'], ['pendiente', 'Por confirmar'], ['reservado', 'Reservas'], ['confirmado', 'Confirmados'], ['produccion', 'En producción'], ['listo', 'Listos'], ['entregado', 'Entregados'], ['cancelado', 'Cancelados']];
 const activo = (p) => !['entregado', 'cancelado'].includes(p.estado);
 
 export default function Pedidos() {
@@ -32,6 +32,13 @@ export default function Pedidos() {
   const accion = (p, a, msg) => correr(() => api('pedido-estado', { id: p.id, accion: a }), msg);
 
   const botones = (p) => {
+    if (p.tipoCliente === 'minorista') {
+      if (p.estado === 'reservado') return (<>
+        <button className="btn sm primary" disabled={ocupado} onClick={() => accion(p, 'preparar', `Reserva #${p.numero} preparada`)}>Preparar</button>
+        <button className="btn sm ghost-bad" disabled={ocupado} onClick={() => setCancelar(p)}>Cancelar</button></>);
+      if (p.estado === 'listo') return <button className="btn sm primary" disabled={ocupado} onClick={() => accion(p, 'entregar', `Reserva #${p.numero} retirada`)}>Marcar retirada</button>;
+      return null;
+    }
     if (p.estado === 'pendiente' && g) return (<>
       <button className="btn sm primary" disabled={ocupado} onClick={() => accion(p, 'confirmar', `Pedido #${p.numero} confirmado`)}>Confirmar</button>
       <button className="btn sm ghost-bad" disabled={ocupado} onClick={() => setCancelar(p)}>Cancelar</button></>);
@@ -64,12 +71,12 @@ export default function Pedidos() {
                   <td><span className="chip">{p.canal === 'web' ? 'Web' : 'Mostrador'}</span></td>
                   <td>{dRel(p.entrega)}{p.modoEntrega === 'retiro' && <div className="muted small">Retira en el local</div>}</td>
                   <td className="r num">{money(p.total)}</td>
-                  <td><Pill e={EST[p.estado]} /></td>
+                  <td><Pill e={estadoDe(p)} /></td>
                   <td><div className="row" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }}>{botones(p)}</div></td>
                 </tr>
                 {abierto === p.id && (
                   <tr className="detail"><td /><td colSpan={6}>
-                    <div className="row" style={{ gap: '6px 16px' }}>{p.items.map((it) => <span key={it.productoId}><span className="num">{it.cantidad}</span> × {it.nombre}</span>)}</div>
+                    <div className="row" style={{ gap: '6px 16px' }}>{p.items.map((it) => <span key={it.articuloId || it.productoId}><span className="num">{cant(it.cantidad, it.unidad)}</span> × {it.nombre}</span>)}</div>
                     <div className="muted" style={{ marginTop: 6 }}>
                       {ENTREGA_LABEL[p.modoEntrega || 'envio']} · Pago: {p.pago}{p.telefono ? ` · Tel. ${p.telefono}` : ''} · Cargado {aFecha(p.creado) ? `${dShort(aFecha(p.creado).toISOString().slice(0, 10))} ${hhmm(p.creado)}` : ''} por {p.creadoPor}
                       {p.direccion ? ` · ${p.direccion}` : ''}{p.notas ? ` · Nota: ${p.notas}` : ''}

@@ -21,13 +21,15 @@ export function Modal({ titulo, onClose, children, ancho }) {
   );
 }
 
-export function Stepper({ id, value, onChange, label, paso = 1 }) {
+export function Stepper({ id, value, onChange, label, paso = 1, max }) {
+  const dec = paso < 1;
+  const norm = (n) => { let x = Math.max(0, dec ? Math.round(n * 1000) / 1000 : Math.floor(n)); if (max !== undefined) x = Math.min(x, max); return x; };
   return (
     <span className="step">
-      <button type="button" onClick={() => onChange(Math.max(0, (value || 0) - paso))} aria-label="Quitar">−</button>
-      <input id={id} className="num" type="number" min="0" value={value || 0} aria-label={label}
-        onChange={(e) => onChange(Math.max(0, Math.floor(+e.target.value || 0)))} />
-      <button type="button" onClick={() => onChange((value || 0) + paso)} aria-label="Agregar">+</button>
+      <button type="button" onClick={() => onChange(norm((value || 0) - paso))} aria-label="Quitar">−</button>
+      <input id={id} className="num" type="number" min="0" step={paso} value={value || 0} aria-label={label}
+        onChange={(e) => onChange(norm(+e.target.value || 0))} />
+      <button type="button" disabled={max !== undefined && (value || 0) >= max} onClick={() => onChange(norm((value || 0) + paso))} aria-label="Agregar">+</button>
     </span>
   );
 }

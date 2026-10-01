@@ -49,6 +49,11 @@ service cloud.firestore {
       allow delete: if conSesion() && (resource.data.uid == request.auth.uid || gerente());
     }
 
+    // Despacho: los clientes ven qué hay disponible; las ventas y movimientos solo el personal.
+    match /articulos/{id}   { allow read: if conSesion(); allow write: if false; }
+    match /ventas/{id}      { allow read: if personal(); allow write: if false; }
+    match /movDespacho/{id} { allow read: if personal(); allow write: if false; }
+
     match /insumos/{id}     { allow read: if personal(); allow write: if false; }
     match /ordenes/{id}     { allow read: if personal(); allow write: if false; }
     match /compras/{id}     { allow read: if personal(); allow write: if false; }

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useData } from '../data';
 import { cuando, dRel, dShort, fq, hoy, manana, money, sumarDias } from '../util';
-import { proyeccion } from '../../shared/negocio.js';
+import { proyeccion, vaAProduccion } from '../../shared/negocio.js';
 import { Contador } from '../ui';
 
 const COL = { warn: 'var(--warn)', info: 'var(--info)', bad: 'var(--bad)', ok: 'var(--ok)' };
@@ -9,11 +9,15 @@ const COL = { warn: 'var(--warn)', info: 'var(--info)', bad: 'var(--bad)', ok: '
 export default function Panel() {
   const d = useData();
   const M = manana();
-  const pm = d.pedidos.filter((o) => o.entrega === M && o.estado !== 'cancelado');
+  const pm = d.pedidos.filter((o) => o.entrega === M && o.estado !== 'cancelado' && vaAProduccion(o));
+  const T0 = hoy();
+  const ventasHoy = d.ventas.filter((v) => v.dia === T0 && !v.anulada);
+  const totalDespacho = ventasHoy.reduce((s, v) => s + v.total, 0);
+  const bajosDespacho = d.articulos.filter((a) => a.activo !== false && (a.stock || 0) < (a.minimo || 0));
   const pend = d.pedidos.filter((o) => o.estado === 'pendiente').sort((a, b) => a.numero - b.numero);
   const ops = d.ordenes.filter((o) => o.estado !== 'terminada');
   const al = proyeccion({ insumos: d.insumos, ordenes: d.ordenes, pedidos: d.pedidos, compras: d.compras, productosPorId: d.productosPorId }).filter((i) => i.alerta);
-  const listos = d.pedidos.filter((o) => o.estado === 'listo');
+  const listos = d.pedidos.filter((o) => o.estado === 'listo' && vaAProduccion(o));
   const sinPlan = d.pedidos.filter((o) => o.estado === 'confirmado');
   const enCamino = d.compras.filter((c) => c.estado === 'autorizada').length;
 
@@ -24,14 +28,16 @@ export default function Panel() {
     attn.push(['info', `${sinPlan.length} pedidos confirmados sin orden de producción`, `Entregas: ${ds.map(dRel).join(', ').toLowerCase()}`, `/planificacion?d=${ds[0]}`, 'Planificar']);
   }
   al.forEach((i) => attn.push(['bad', `${i.nombre} va a quedar debajo del stock de seguridad`, `Proyectado ${fq(i.proyectado, i.unidad)} ${i.unidad} · seguridad ${fq(i.seguridad, i.unidad)} ${i.unidad}`, '/compras', 'Ver compra']));
+  if (bajosDespacho.length) attn.push(['warn', `${bajosDespacho.length} artículos del despacho con poco stock`, bajosDespacho.slice(0, 3).map((a) => a.nombre).join(', ') + (bajosDespacho.length > 3 ? '…' : ''), '/despacho?t=stock', 'Ver']);
   if (listos.length) attn.push(['ok', `${listos.length} pedidos listos para salir a reparto`, listos.slice(0, 3).map((o) => o.clienteNombre).join(', ') + (listos.length > 3 ? '…' : ''), '/pedidos?f=listo', 'Ver']);
 
   return (
     <>
       <div className="kpis">
-        <Link className="kpi" to="/pedidos"><span className="t">Pedidos para mañana</span><span className="v"><Contador valor={pm.length} /></span><span className="s"><Contador valor={pm.reduce((a, o) => a + o.total, 0)} formato={money} /> · {pm.filter((o) => o.tipoCliente === 'minorista').length} minoristas</span></Link>
+        <Link className="kpi" to="/pedidos"><span className="t">Pedidos para mañana</span><span className="v"><Contador valor={pm.length} /></span><span className="s"><Contador valor={pm.reduce((a, o) => a + o.total, 0)} formato={money} /> en pedidos mayoristas</span></Link>
         <Link className="kpi" to="/pedidos?f=pendiente"><span className="t">Por confirmar</span><span className="v"><Contador valor={pend.length} /></span><span className="s">{pend.filter((o) => o.canal === 'web').length} web · {pend.filter((o) => o.canal === 'mostrador').length} mostrador</span></Link>
         <Link className="kpi" to="/produccion"><span className="t">Órdenes de producción abiertas</span><span className="v"><Contador valor={ops.length} /></span><span className="s">{ops.filter((o) => o.estado === 'en_curso').length} en curso</span></Link>
+        <Link className="kpi" to="/despacho?t=ventas"><span className="t">Vendido hoy en el despacho</span><span className="v"><Contador valor={totalDespacho} formato={money} /></span><span className="s">{ventasHoy.length} ventas</span></Link>
         <Link className={`kpi ${al.length ? 'alert' : ''}`} to="/compras"><span className="t">Insumos en alerta</span><span className="v"><Contador valor={al.length} /></span><span className="s">{enCamino} compras en camino</span></Link>
       </div>
       <div className="grid32">

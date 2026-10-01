@@ -2,7 +2,7 @@
 // suma la producción extra para el local, calcula los insumos con las recetas,
 // controla que alcance el stock y genera una orden de producción por producto.
 import { db, endpoint, HttpError, FieldValue, registrar, siguienteNumero, notificar } from '../lib/servidor.mjs';
-import { esFecha, totalesPorProducto, explotar, reservado, faltantes } from '../../shared/negocio.js';
+import { esFecha, totalesPorProducto, explotar, reservado, faltantes, vaAProduccion } from '../../shared/negocio.js';
 
 export default endpoint(['gerente'], async (b, yo) => {
   if (!esFecha(b.fecha)) throw new HttpError(400, 'Fecha inválida.');
@@ -22,7 +22,8 @@ export default endpoint(['gerente'], async (b, yo) => {
 
     const productos = Object.fromEntries(prodSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
     const insumos = Object.fromEntries(insSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
-    const pedidos = pedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    // Solo los pedidos mayoristas se producen por pedido; los minoristas salen del despacho.
+    const pedidos = pedSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter(vaAProduccion);
 
     // 2) Cálculo
     const totales = totalesPorProducto(pedidos);

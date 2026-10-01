@@ -127,3 +127,67 @@ export function ImagenProducto({ producto, className = '' }) {
   if (!url || fallo) return <DibujoPan nombre={producto?.nombre} className={className} />;
   return <img className={`prod-img ${className}`} src={url} alt={producto.nombre} loading="lazy" onError={() => setFallo(true)} />;
 }
+
+// ---------- Artículos de reventa del despacho ----------
+function Lacteo() {
+  return (
+    <g>
+      <ellipse cx="100" cy="132" rx="54" ry="7" fill="#000" opacity=".08" />
+      <path d="M72 46 L84 28 H116 L128 46 V128 H72 Z" fill="#FFFFFF" stroke="#C9D3DC" strokeWidth="3" />
+      <path d="M84 28 H116 L128 46 H72 Z" fill="#2A5F96" />
+      <rect x="72" y="70" width="56" height="34" fill="#2A5F96" />
+      <path d="M78 94 q8 -10 16 0 t16 0 t16 0" stroke="#fff" strokeWidth="3" fill="none" />
+      <circle cx="100" cy="82" r="6" fill="#fff" />
+    </g>
+  );
+}
+function Bebida() {
+  return (
+    <g>
+      <ellipse cx="100" cy="134" rx="40" ry="7" fill="#000" opacity=".08" />
+      <rect x="92" y="14" width="16" height="12" rx="3" fill={C.tomate} />
+      <path d="M90 26 H110 L110 40 Q126 48 126 66 V124 Q126 132 118 132 H82 Q74 132 74 124 V66 Q74 48 90 40 Z" fill="#3B1C12" opacity=".92" />
+      <rect x="74" y="76" width="52" height="26" fill={C.tomate} />
+      <path d="M80 89 q10 -8 20 0 t20 0" stroke="#fff" strokeWidth="3" fill="none" />
+      <path d="M84 50 Q80 60 80 74" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity=".35" fill="none" />
+    </g>
+  );
+}
+function Fiambre() {
+  return (
+    <g>
+      <ellipse cx="100" cy="130" rx="74" ry="8" fill="#000" opacity=".08" />
+      <rect x="34" y="62" width="92" height="52" rx="26" fill="#C2414E" />
+      <ellipse cx="126" cy="88" rx="22" ry="26" fill="#E9A3A8" />
+      {[[120, 80], [130, 92], [118, 98], [132, 78]].map(([x, y], k) => <circle key={k} cx={x} cy={y} r="3" fill="#FFF3F0" />)}
+      <path d="M150 70 a26 26 0 0 1 0 40" fill="#F2B8BC" stroke="#C2414E" strokeWidth="3" />
+      <rect x="60" y="56" width="6" height="64" rx="3" fill="#F6E7C8" opacity=".9" />
+    </g>
+  );
+}
+function Almacen() {
+  return (
+    <g>
+      <ellipse cx="100" cy="132" rx="46" ry="7" fill="#000" opacity=".08" />
+      <rect x="66" y="24" width="68" height="20" rx="5" fill={C.verde} />
+      <path d="M70 44 H130 V118 Q130 128 120 128 H80 Q70 128 70 118 Z" fill="#B5651D" opacity=".88" />
+      <rect x="70" y="66" width="60" height="34" fill={C.blanco} />
+      <path d="M78 84 h44" stroke={C.verde} strokeWidth="4" strokeLinecap="round" />
+      <path d="M86 92 h28" stroke={C.tomate} strokeWidth="3" strokeLinecap="round" />
+    </g>
+  );
+}
+const DIBUJOS_CAT = { 'Lácteos': Lacteo, Bebidas: Bebida, Fiambres: Fiambre, 'Almacén': Almacen };
+
+export function DibujoArticulo({ articulo, className = '' }) {
+  const Comp = DIBUJOS_CAT[articulo?.categoria];
+  if (!Comp) return <DibujoPan nombre={articulo?.nombre} className={className} />;
+  return <svg className={`pan-svg ${className}`} viewBox="0 0 200 150" role="img" aria-label={`Dibujo de ${articulo.nombre}`}><Comp /></svg>;
+}
+
+/** Imagen de un artículo del despacho: si es elaborado usa la del producto; si no, el dibujo de su categoría. */
+export function ImagenArticulo({ articulo, productosPorId = {}, className = '' }) {
+  const p = articulo?.productoId ? productosPorId[articulo.productoId] : null;
+  if (p) return <ImagenProducto producto={p} className={className} />;
+  return <DibujoArticulo articulo={articulo} className={className} />;
+}
