@@ -1,0 +1,30 @@
+{
+  "name": "el-sol-tucumano",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sistema de pedidos, planificación de producción (MRP básico), stock y compras para la panadería El Sol Tucumano",
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev",
+    "dev:front": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "env": "node scripts/crear-env.mjs",
+    "seed": "node --env-file=.env scripts/seed.mjs",
+    "test": "node --test tests/negocio.test.js"
+  },
+  "dependencies": {
+    "firebase": "^11.0.0",
+    "firebase-admin": "^13.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=20.6"
+  }
+}

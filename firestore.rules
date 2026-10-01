@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para El Sol Tucumano.
+// - Leer: cada rol ve solo lo que necesita.
+// - Escribir: casi todo pasa por el backend (Netlify Functions con Firebase Admin),
+//   que no está sujeto a estas reglas. Desde el navegador solo el gerente puede
+//   editar productos y recetas.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function conSesion() { return request.auth != null; }
+    function perfil() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
+    function rol() { return perfil().rol; }
+    function personal() { return conSesion() && rol() in ['gerente', 'mostrador', 'panadero', 'deposito']; }
+    function gerente() { return conSesion() && rol() == 'gerente'; }
+
+    match /usuarios/{uid} {
+      allow read: if conSesion() && (request.auth.uid == uid || gerente());
+      allow write: if false;
+    }
+
+    match /productos/{id} {
+      allow read: if conSesion();
+      allow create, update: if gerente();
+      allow delete: if false;
+    }
+
+    match /clientes/{id} {
+      allow read: if personal() || (conSesion() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
+    match /pedidos/{id} {
+      allow read: if personal() || (conSesion() && resource.data.clienteUid == request.auth.uid);
+      allow write: if false;
+    }
+
+    match /insumos/{id}     { allow read: if personal(); allow write: if false; }
+    match /ordenes/{id}     { allow read: if personal(); allow write: if false; }
+    match /compras/{id}     { allow read: if personal(); allow write: if false; }
+    match /movimientos/{id} { allow read: if personal(); allow write: if false; }
+    match /actividad/{id}   { allow read: if personal(); allow write: if false; }
+    match /contadores/{id}  { allow read, write: if false; }
+  }
+}
