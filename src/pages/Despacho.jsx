@@ -23,7 +23,7 @@ export default function Despacho() {
       <div className="tabs grandes" role="tablist" aria-label="Secciones del despacho">
         {PESTANAS.map(([k, l]) => (
           <button key={k} role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setParams({ t: k })}>
-            {l}{k === 'reservas' && nReservas > 0 && <span className="badge" style={{ marginLeft: 8 }}>{nReservas}</span>}
+            {l}{k === 'reservas' && nReservas > 0 && <span className="badge n" style={{ marginLeft: 4 }}>{nReservas}</span>}
           </button>
         ))}
       </div>

@@ -22,10 +22,10 @@ function volarAlCarrito(origen, destino) {
   const dx = b.left + 28 - (a.left + a.width / 2);
   const dy = b.top + b.height / 2 - (a.top + a.height / 2);
   const anim = clon.animate([
-    { transform: 'translate(0,0) scale(1)', opacity: 1, borderRadius: '16px' },
-    { transform: `translate(${dx * 0.45}px, ${dy * 0.45 - 90}px) scale(.55) rotate(-8deg)`, opacity: 1, offset: 0.5 },
-    { transform: `translate(${dx}px, ${dy}px) scale(.12) rotate(10deg)`, opacity: 0.4, borderRadius: '50%' },
-  ], { duration: 750, easing: 'cubic-bezier(.5,0,.3,1)' });
+    { transform: 'translate(0,0) scale(1)', opacity: 1, borderRadius: '10px' },
+    { transform: `translate(${dx * 0.45}px, ${dy * 0.45 - 90}px) scale(.55)`, opacity: 1, offset: 0.5 },
+    { transform: `translate(${dx}px, ${dy}px) scale(.12)`, opacity: 0.4, borderRadius: '50%' },
+  ], { duration: 600, easing: 'cubic-bezier(.4,0,.2,1)' });
   return anim.finished.then(() => clon.remove(), () => clon.remove());
 }
 

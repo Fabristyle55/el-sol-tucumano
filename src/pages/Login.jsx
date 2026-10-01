@@ -20,27 +20,18 @@ const DEMO = [
   ['Depósito', 'deposito@elsol.demo'], ['Cliente mayorista', 'cliente@elsol.demo'], ['Cliente minorista', 'minorista@elsol.demo'],
 ];
 
-// Partículas de "harina" que suben en el fondo (posiciones fijas para que no cambien en cada render).
-const PARTICULAS = Array.from({ length: 16 }, (_, k) => ({
-  left: `${(k * 37) % 100}%`, size: 3 + (k % 4) * 2, dur: 9 + (k % 5) * 2.4, delay: -(k * 1.3),
-}));
-
 export function AuthArte() {
   return (
     <div className="auth-art">
-      <img className="auth-sun" src="/marca/sol-512.png" alt="" aria-hidden="true" />
-      <div className="particulas" aria-hidden="true">
-        {PARTICULAS.map((p, k) => <i key={k} style={{ left: p.left, width: p.size, height: p.size, animationDuration: `${p.dur}s`, animationDelay: `${p.delay}s` }} />)}
-      </div>
       <img className="auth-logo" src="/marca/logo.jpg" alt="Panificación El Sol Siciliano" />
       <div>
-        <h1>Del pedido al horno, <em>sin cuaderno</em> ni llamadas.</h1>
-        <p style={{ marginTop: 14 }}>Pedidos, planificación de la producción, stock y compras de la panadería en un solo sistema.</p>
+        <h1>Sistema de gestión de la panadería</h1>
+        <p style={{ marginTop: 12 }}>Pedidos, producción, despacho, stock y compras de Panificación El Sol Siciliano.</p>
       </div>
       <div className="auth-feats">
-        <div><span className="ic">1</span><span><b>Pedidos en tiempo real</b><span>Web y mostrador, mayoristas y minoristas.</span></span></div>
-        <div><span className="ic">2</span><span><b>Planificación automática</b><span>Los insumos se calculan con las recetas.</span></span></div>
-        <div><span className="ic">3</span><span><b>Stock y compras al día</b><span>Alertas antes de quedarse sin harina.</span></span></div>
+        <div><span className="ic">✓</span><span><b>Pedidos y reservas</b><span>Por la web o cargados en el mostrador.</span></span></div>
+        <div><span className="ic">✓</span><span><b>Producción planificada</b><span>Los insumos se calculan con las recetas.</span></span></div>
+        <div><span className="ic">✓</span><span><b>Stock y compras al día</b><span>Avisos antes de quedarse sin insumos.</span></span></div>
       </div>
       <p className="small"><a href="/presentacion/index.html">Conocé el proyecto</a> · Seminario Integrador · UTN FRT</p>
     </div>
@@ -94,7 +85,7 @@ export default function Login() {
           <div className="demo">
             <span className="lbl">Cuentas de prueba · contraseña elsol2026</span>
             {DEMO.map(([r, m]) => (
-              <button key={m} type="button" onClick={() => { setEmail(m); setPass('elsol2026'); }}>{r}: {m}</button>
+              <button key={m} type="button" title={m} onClick={() => { setEmail(m); setPass('elsol2026'); }}>{r}</button>
             ))}
           </div>
         </form>

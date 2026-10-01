@@ -24,7 +24,7 @@ export default function Layout() {
   const badge = {
     pedidos: nPend ? <span className="badge warn" title="Por confirmar">{nPend}</span> : null,
     produccion: nOps ? <span className="badge warn" title="Órdenes abiertas">{nOps}</span> : null,
-    despacho: nRes ? <span className="badge" title="Reservas para preparar o entregar">{nRes}</span> : null,
+    despacho: nRes ? <span className="badge n" title="Reservas para preparar o entregar">{nRes}</span> : null,
     compras: nAl ? <span className="badge" title="Insumos en alerta">{nAl}</span> : null,
   };
   const fechaLarga = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
@@ -50,7 +50,7 @@ export default function Layout() {
       <main>
         <div className="head">
           <div><h1>{titulo}</h1><p>{sub}</p></div>
-          <div className="today"><span className="live" title="Datos en tiempo real" /> Hoy es <b>{fechaLarga}</b></div>
+          <div className="today"><b>{fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)}</b></div>
         </div>
         {d.error && (
           <div className="note bad">
