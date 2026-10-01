@@ -2,7 +2,7 @@
 // Todo lo que calcula insumos, reservas y alertas de compra vive acá para que
 // ambos lados den exactamente el mismo resultado.
 
-export const ROLES_STAFF = ['gerente', 'mostrador', 'panadero', 'deposito'];
+export const ROLES_STAFF = ['gerente', 'mostrador', 'panadero', 'deposito', 'repartidor'];
 export const FORMAS_PAGO = ['Efectivo', 'Transferencia', 'Cuenta corriente'];
 export const TIPOS_CLIENTE = ['mayorista', 'minorista'];
 export const MODOS_ENTREGA = ['envio', 'retiro'];
@@ -71,6 +71,85 @@ export function resumenCaja(ventas, reservas = []) {
   const total = Object.values(porPago).reduce((a, b) => a + b, 0);
   return { porPago, efectivo: porPago.Efectivo || 0, total };
 }
+
+// ---------- Reparto ----------
+/** Lo que el repartidor tiene que cobrar al entregar (nada si va a cuenta corriente o ya se transfirió). */
+export const aCobrarEnEntrega = (p) => (['Cuenta corriente', 'Transferencia'].includes(p?.pago) ? 0 : Math.round(p?.total || 0));
+/**
+ * Cobros de pedidos entregados que entran a la caja del despacho:
+ * reservas minoristas retiradas y lo que el repartidor cobró en la calle.
+ * Devuelve [{ pago, total }] para usar con resumenCaja.
+ */
+export function cobrosDelDia(pedidos) {
+  const out = [];
+  for (const p of pedidos) {
+    if (p.estado !== 'entregado') continue;
+    if (p.cobrado != null) { if (p.cobrado > 0) out.push({ pago: p.pagoCobrado || p.pago, total: Math.round(p.cobrado) }); }
+    else if (p.tipoCliente === 'minorista') out.push({ pago: p.pago, total: p.total || 0 });
+  }
+  return out;
+}
+
+// ---------- WhatsApp ----------
+/**
+ * Número de teléfono argentino en formato internacional para WhatsApp (549 + área + número).
+ * Acepta "381 15 4123456", "0381-4123456", "+54 9 381 4123456" o un número local de Tucumán.
+ */
+export function telefonoWa(tel, area = '381') {
+  let d = String(tel || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('54')) d = d.slice(2);
+  if (d.startsWith('9') && d.length === 11) d = d.slice(1);
+  if (d.startsWith('0')) d = d.slice(1);
+  if (d.length === 12) for (const k of [3, 2, 4]) if (d.slice(k, k + 2) === '15') { d = d.slice(0, k) + d.slice(k + 2); break; }
+  if (d.length === 9 && d.startsWith('15')) d = area + d.slice(2);
+  if (d.length === 7) d = area + d;
+  return d.length === 10 ? `549${d}` : '';
+}
+export const linkWhatsApp = (tel, mensaje) => { const n = telefonoWa(tel); return n ? `https://wa.me/${n}?text=${encodeURIComponent(mensaje)}` : ''; };
+
+// ---------- Promociones y cupones ----------
+/** Una promoción o cupón está vigente para ese tipo de cliente y ese día. */
+export const promoVigente = (pr, tipoCliente, hoyISO) => !!pr && pr.activo !== false
+  && (!pr.para || pr.para === 'todos' || pr.para === tipoCliente) && (!pr.vence || !hoyISO || pr.vence >= hoyISO)
+  && !(pr.usosMax > 0 && (pr.usos || 0) >= pr.usosMax);
+/**
+ * Aplica las promociones por cantidad (la mejor de cada línea) y después el cupón sobre lo que queda.
+ * lineas: [{ productoId, cantidad, precio }] · promos: [{ tipo:'cantidad', productoId|null, minimo, pct }]
+ * cupon: { codigo, pct, minimo (monto) } o null.
+ */
+export function aplicarPromos(lineas, promos = [], tipoCliente = 'mayorista', cupon = null, hoyISO = '') {
+  const porCantidad = promos.filter((p) => p.tipo === 'cantidad' && promoVigente(p, tipoCliente, hoyISO));
+  let subtotal = 0; let descLineas = 0;
+  const out = lineas.map((l) => {
+    const sub = Math.round(l.cantidad * l.precio);
+    subtotal += sub;
+    const mejor = porCantidad.filter((p) => (!p.productoId || p.productoId === l.productoId) && l.cantidad >= (p.minimo || 1))
+      .sort((a, b) => b.pct - a.pct)[0];
+    if (!mejor) return { ...l };
+    const descuento = Math.round((sub * mejor.pct) / 100);
+    descLineas += descuento;
+    return { ...l, promo: mejor.nombre || `${mejor.pct}% desde ${mejor.minimo}`, descuento };
+  });
+  let descCupon = 0; let motivoCupon = '';
+  if (cupon) {
+    const base = subtotal - descLineas;
+    if (!promoVigente(cupon, tipoCliente, hoyISO)) motivoCupon = 'El cupón no está vigente.';
+    else if (base < (cupon.minimo || 0)) motivoCupon = `El cupón es para compras desde $${Math.round(cupon.minimo).toLocaleString('es-AR')}.`;
+    else descCupon = Math.round((base * cupon.pct) / 100);
+  }
+  const descuento = descLineas + descCupon;
+  return { lineas: out, subtotal, descLineas, descCupon, descuento, total: subtotal - descuento, cuponOk: !!cupon && !motivoCupon, motivoCupon };
+}
+/** Código de cupón normalizado: mayúsculas, solo letras y números. */
+export const codigoCupon = (c) => String(c ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+/** Promos por cantidad vigentes para un producto, de menor a mayor cantidad mínima (para el catálogo). */
+export const promosDe = (productoId, promos, tipoCliente, hoyISO) => promos
+  .filter((p) => p.tipo === 'cantidad' && (!p.productoId || p.productoId === productoId) && promoVigente(p, tipoCliente, hoyISO))
+  .sort((a, b) => a.minimo - b.minimo);
+
+/** Días 'AAAA-MM-DD' desde hasta hasta, inclusive. */
+export function rangoDias(desde, hasta) { const out = []; for (let d = desde; d <= hasta; d = sumarDias(d, 1)) out.push(d); return out; }
 
 // ---------- Cuenta corriente (mayoristas) ----------
 export const PLAZO_CC = 15;
