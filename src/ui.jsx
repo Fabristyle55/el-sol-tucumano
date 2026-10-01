@@ -84,14 +84,26 @@ export function ToastProvider({ children }) {
       {children}
       <div className="sr-only" aria-live="polite">{t && t.tipo !== 'error' ? t.msg : ''}</div>
       <div className="sr-only" aria-live="assertive">{t && t.tipo === 'error' ? t.msg : ''}</div>
-      {t && <div key={t.k} className={`toast ${t.tipo === 'error' ? 'err' : ''}`} aria-hidden="true">{t.msg}</div>}
+      {t && (
+        <div key={t.k} className={`toast ${t.tipo === 'error' ? 'err' : ''}`} aria-hidden="true">
+          <span className="toast-ic">{t.tipo === 'error' ? '!' : '✓'}</span><span>{t.msg}</span>
+          <i className="toast-bar" style={{ animationDuration: t.tipo === 'error' ? '6s' : '3.8s' }} />
+        </div>
+      )}
     </ToastCtx.Provider>
   );
 }
 export const useToast = () => useContext(ToastCtx);
 
 export const Vacio = ({ children }) => <div className="empty">{children}</div>;
-export const Cargando = () => <div className="empty">Cargando<span className="loading-dots"><i /><i /><i /></span></div>;
+/** Esqueleto de carga: bloques con brillo en lugar de un texto, como las apps modernas. */
+export const Cargando = ({ filas = 4 }) => (
+  <div className="skel-wrap" role="status" aria-live="polite">
+    <span className="sr-only">Cargando…</span>
+    <div className="skel-row">{[0, 1, 2].map((k) => <div key={k} className="skel skel-kpi" style={{ animationDelay: `${k * 0.1}s` }} />)}</div>
+    {Array.from({ length: filas }, (_, k) => <div key={k} className="skel skel-line" style={{ width: `${92 - k * 9}%`, animationDelay: `${0.2 + k * 0.08}s` }} />)}
+  </div>
+);
 
 /** Sol del logo, como imagen. */
 export const Sol = ({ size = 42, className = '' }) => <img src="/marca/sol-192.png" width={size} height={size} alt="" className={className} />;

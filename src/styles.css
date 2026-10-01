@@ -629,3 +629,129 @@ tr.detail td { background: var(--surface-2); font-size: 13px }
   .modal { width: 100% !important; max-height: 92vh; border-radius: 16px 16px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) }
   .entrega-acciones .btn { flex: 1 1 calc(50% - 8px) }
 }
+
+/* =========================================================================
+   Diseño 2026: movimiento útil y discreto (menú con indicador, buscador,
+   transiciones entre pantallas, esqueletos de carga, avisos con progreso).
+   ========================================================================= */
+:root { --spring: cubic-bezier(.34, 1.4, .64, 1); --ease-out: cubic-bezier(.22, 1, .36, 1) }
+
+/* Fondo con un toque de color de marca */
+body { background: radial-gradient(1200px 600px at 100% -10%, color-mix(in srgb, var(--verde) 7%, transparent), transparent 60%), radial-gradient(900px 500px at -10% 110%, color-mix(in srgb, var(--sol) 8%, transparent), transparent 60%), var(--bg); background-attachment: fixed }
+
+/* Menú lateral con íconos e indicador que se desliza */
+.side { background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3) }
+.nav { position: relative }
+.nav a { position: relative; z-index: 1; justify-content: flex-start; gap: 10px; padding: 8px 10px; transition: color .2s, background .2s, transform .2s var(--spring) }
+.nav a .nav-t { flex: 1; min-width: 0 }
+.nav a .ico { flex: none; opacity: .75; transition: transform .35s var(--spring), opacity .2s }
+.nav a:hover .ico { transform: scale(1.12) rotate(-4deg); opacity: 1 }
+.nav a:active { transform: scale(.97) }
+.nav a.active { background: transparent }
+.nav a.active .ico { opacity: 1; color: var(--verde) }
+.nav-ind { position: absolute; left: 0; top: 0; z-index: 0; border-radius: var(--r-sm); background: var(--verde-soft); box-shadow: inset 2px 0 0 var(--verde); transition: transform .45s var(--ease-out), width .45s var(--ease-out), height .45s var(--ease-out); pointer-events: none }
+.brand img { transition: transform 1.2s var(--spring) }
+.brand:hover img { transform: rotate(180deg) }
+.user-box .avatar { background: linear-gradient(135deg, var(--verde), color-mix(in srgb, var(--verde) 55%, var(--sol))); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px color-mix(in srgb, var(--verde) 40%, transparent) }
+
+/* Botón del buscador y atajo de teclado */
+.buscar-btn { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px 0 10px; min-width: 210px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 13px; box-shadow: var(--shadow-xs); transition: border-color .2s, box-shadow .2s, transform .2s }
+.buscar-btn:hover { border-color: var(--line-2); color: var(--ink-2); box-shadow: var(--shadow-sm) }
+.buscar-btn span { flex: 1; text-align: left }
+kbd { font: 600 11px/1 var(--f-body); padding: 3px 6px; border-radius: 5px; border: 1px solid var(--line); border-bottom-width: 2px; background: var(--surface-2); color: var(--muted); white-space: nowrap }
+
+/* Buscador (paleta de comandos) */
+.paleta-bg { position: fixed; inset: 0; z-index: 40; background: rgba(8, 14, 10, .4); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; animation: fadeIn .15s ease both }
+.paleta { width: min(640px, 100%); max-height: 70vh; display: flex; flex-direction: column; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(20px); border: 1px solid var(--line-2); border-radius: 14px; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255, 255, 255, .04) inset; overflow: hidden; animation: paletaIn .22s var(--ease-out) both }
+@keyframes paletaIn { from { opacity: 0; transform: translateY(-10px) scale(.98) } to { opacity: 1; transform: none } }
+.paleta-in { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); color: var(--muted) }
+.paleta-in input { flex: 1; border: 0; background: transparent; outline: none; font-size: 16px; color: var(--ink); padding: 4px 0; box-shadow: none }
+.paleta-in input:focus { box-shadow: none }
+.paleta-lista { overflow: auto; padding: 6px }
+.paleta-g { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 10px 10px 4px }
+.paleta-op { display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: var(--r); cursor: pointer; scroll-margin: 6px }
+.paleta-op[aria-selected="true"] { background: var(--verde-soft) }
+.paleta-ic { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); flex: none }
+.paleta-op[aria-selected="true"] .paleta-ic { background: var(--verde); border-color: var(--verde); color: var(--brand-ink) }
+.paleta-t { flex: 1; min-width: 0; display: flex; flex-direction: column }
+.paleta-t b { font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.paleta-t small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.paleta-ir { color: var(--verde) }
+.paleta-vacio { padding: 32px 16px; text-align: center; color: var(--muted) }
+.paleta-pie { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); background: var(--surface-2) }
+.paleta-pie span { display: inline-flex; align-items: center; gap: 4px }
+
+/* Transiciones entre pantallas (View Transitions) */
+::view-transition-old(root) { animation: vtOut .18s var(--ease) both }
+::view-transition-new(root) { animation: vtIn .32s var(--ease-out) both }
+@keyframes vtOut { to { opacity: 0; transform: translateY(-4px) } }
+@keyframes vtIn { from { opacity: 0; transform: translateY(6px) } }
+.side { view-transition-name: menu }
+::view-transition-old(menu), ::view-transition-new(menu) { animation: none }
+.page { animation: pageIn .35s var(--ease-out) both }
+@keyframes pageIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+.page > * { animation: pageIn .45s var(--ease-out) both }
+.page > *:nth-child(2) { animation-delay: .04s }
+.page > *:nth-child(3) { animation-delay: .08s }
+.page > *:nth-child(4) { animation-delay: .12s }
+.page > *:nth-child(n+5) { animation-delay: .16s }
+
+/* Tarjetas e indicadores: elevación suave y borde que se ilumina */
+.card { transition: box-shadow .3s var(--ease-out), border-color .3s }
+.kpi { position: relative; overflow: hidden; transition: transform .35s var(--spring), box-shadow .3s var(--ease-out), border-color .3s }
+.kpi::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--verde) 10%, transparent), transparent 60%); opacity: 0; transition: opacity .3s; pointer-events: none }
+a.kpi:hover, button.kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--verde) 35%, var(--line)) }
+a.kpi:hover::after, button.kpi:hover::after { opacity: 1 }
+.btn { transition: background .15s, border-color .15s, color .15s, transform .2s var(--spring), box-shadow .2s }
+.btn:active:not(:disabled) { transform: scale(.97) }
+.btn.primary { background: linear-gradient(180deg, color-mix(in srgb, var(--verde) 88%, #fff), var(--verde)); box-shadow: 0 1px 2px rgba(0, 0, 0, .1), 0 4px 12px -4px color-mix(in srgb, var(--verde) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, .18) }
+.btn.primary:hover { background: var(--verde-hover); box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--verde) 70%, transparent) }
+.icon-btn { transition: background .15s, transform .4s var(--spring) }
+.icon-btn:hover { transform: rotate(18deg) }
+input, select, textarea { transition: border-color .15s, box-shadow .2s }
+
+/* Esqueletos de carga */
+.skel-wrap { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 }
+.skel-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.skel { border-radius: var(--r); background: linear-gradient(90deg, var(--surface-2) 0%, color-mix(in srgb, var(--line) 80%, var(--surface)) 40%, var(--surface-2) 80%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite }
+.skel-kpi { height: 84px; border: 1px solid var(--line) }
+.skel-line { height: 14px }
+
+/* Avisos (toast) con ícono y barra de tiempo */
+.toast { display: flex; align-items: center; gap: 10px; overflow: hidden; padding: 11px 16px 13px 12px; backdrop-filter: blur(10px); animation: toastPop .35s var(--spring) both }
+@keyframes toastPop { from { opacity: 0; transform: translate(-50%, 14px) scale(.95) } to { opacity: 1; transform: translate(-50%, 0) } }
+.toast-ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--verde); color: #fff; font-size: 12px; font-weight: 700; flex: none }
+.toast.err .toast-ic { background: #fff; color: var(--rojo) }
+.toast-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: currentColor; opacity: .35; transform-origin: left; animation: toastBar linear forwards }
+@keyframes toastBar { from { transform: scaleX(1) } to { transform: scaleX(0) } }
+
+/* Campanita: se mueve cuando hay avisos nuevos */
+.campana:has(.campana-n) svg { animation: campanita 3s ease-in-out infinite; transform-origin: 50% 10% }
+@keyframes campanita { 0%, 86%, 100% { transform: rotate(0) } 89% { transform: rotate(14deg) } 92% { transform: rotate(-12deg) } 95% { transform: rotate(7deg) } 98% { transform: rotate(-3deg) } }
+
+/* Login con el sol girando y harina flotando */
+.auth-art { overflow: hidden; isolation: isolate; background: radial-gradient(circle at 15% 10%, #1F8A4C, transparent 50%), radial-gradient(circle at 100% 100%, rgba(196, 42, 34, .45), transparent 45%), #0C3D22 }
+.auth-deco { position: absolute; inset: 0; z-index: -1; pointer-events: none }
+.auth-sol { position: absolute; width: 520px; right: -170px; bottom: -170px; opacity: .14; animation: spin 90s linear infinite }
+.auth-aura { position: absolute; border-radius: 50%; filter: blur(60px); animation: auraMove 16s ease-in-out infinite }
+.auth-aura.a { width: 300px; height: 300px; background: #F2C744; opacity: .18; left: 10%; top: 30% }
+.auth-aura.b { width: 260px; height: 260px; background: #3DAA69; opacity: .25; right: 5%; top: 5%; animation-delay: -8s }
+@keyframes auraMove { 0%, 100% { transform: translate(0, 0) } 50% { transform: translate(40px, -30px) } }
+.auth-deco i { position: absolute; bottom: -10px; border-radius: 50%; background: #F2C744; opacity: 0; animation: harina linear infinite }
+@keyframes harina { 0% { transform: translateY(0); opacity: 0 } 15% { opacity: .5 } 85% { opacity: .25 } 100% { transform: translateY(-100vh) translateX(30px); opacity: 0 } }
+.auth-logo { animation: pageIn .6s var(--ease-out) both; box-shadow: 0 20px 40px -12px rgba(0, 0, 0, .5) }
+.auth-art h1 { animation: pageIn .7s .08s var(--ease-out) both }
+.auth-feats div { animation: pageIn .6s var(--ease-out) both }
+.auth-feats div:nth-child(1) { animation-delay: .2s } .auth-feats div:nth-child(2) { animation-delay: .3s } .auth-feats div:nth-child(3) { animation-delay: .4s }
+.auth-form form { animation: paletaIn .5s .1s var(--ease-out) both; box-shadow: var(--shadow) }
+
+@media (max-width: 860px) {
+  .nav a { padding: 7px 10px }
+  .nav-ind { box-shadow: inset 0 -2px 0 var(--verde) }
+  .nav { scrollbar-width: none; scroll-behavior: smooth }
+  .nav::-webkit-scrollbar { display: none }
+  .buscar-btn { min-width: 0; width: 40px; padding: 0; justify-content: center }
+  .buscar-btn span, .buscar-btn kbd { display: none }
+}
+@media (pointer: coarse) { .buscar-btn { height: 40px } .paleta-pie { display: none } }
+@media (prefers-reduced-motion: reduce) { .nav-ind { transition: none } }

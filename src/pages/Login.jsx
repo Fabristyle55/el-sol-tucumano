@@ -23,6 +23,11 @@ const DEMO = [
 export function AuthArte() {
   return (
     <div className="auth-art">
+      <div className="auth-deco" aria-hidden="true">
+        <img className="auth-sol" src="/marca/sol-512.png" alt="" />
+        <span className="auth-aura a" /><span className="auth-aura b" />
+        {Array.from({ length: 16 }, (_, k) => <i key={k} style={{ left: `${(k * 37) % 100}%`, width: 3 + (k % 4) * 2, height: 3 + (k % 4) * 2, animationDuration: `${9 + (k % 5) * 2.5}s`, animationDelay: `${-k * 1.3}s` }} />)}
+      </div>
       <img className="auth-logo" src="/marca/logo.jpg" alt="Panificación El Sol Siciliano" />
       <div>
         <h1>Sistema de gestión de la panadería</h1>

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuth } from '../auth';
@@ -8,6 +9,8 @@ import { ROLES, VISTAS } from '../util';
 import { estadoCuenta, fechaAR, proyeccion } from '../../shared/negocio.js';
 import { TemaToggle } from '../ui';
 import Avisos from './Avisos';
+import Buscador, { BotonBuscar } from './Buscador';
+import { Icono } from './Iconos';
 
 /** Estado de la conexión y botón para instalar la app (PWA). */
 function useApp() {
@@ -20,6 +23,35 @@ function useApp() {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); window.removeEventListener('beforeinstallprompt', ofrecer); };
   }, []);
   return { online, instalar: instalar && (async () => { instalar.prompt(); await instalar.userChoice.catch(() => null); setInstalar(null); }) };
+}
+
+/** Navega con una transición suave entre pantallas (View Transitions) si el navegador la soporta. */
+export function useIrSuave() {
+  const navigate = useNavigate();
+  return (to) => {
+    const reducir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!document.startViewTransition || reducir) { navigate(to); return; }
+    document.startViewTransition(() => flushSync(() => navigate(to)));
+  };
+}
+
+/** Indicador que se desliza hasta la sección activa del menú. */
+function useIndicador(navRef, pathname) {
+  const [st, setSt] = useState(null);
+  useLayoutEffect(() => {
+    const medir = () => {
+      const a = navRef.current?.querySelector('a.active');
+      if (!a) { setSt(null); return; }
+      setSt({ top: a.offsetTop, left: a.offsetLeft, width: a.offsetWidth, height: a.offsetHeight });
+      // En el celular el menú es una fila que se desliza: se centra la sección activa.
+      const nav = navRef.current;
+      if (nav.scrollWidth > nav.clientWidth) nav.scrollLeft = a.offsetLeft - (nav.clientWidth - a.offsetWidth) / 2;
+    };
+    medir();
+    window.addEventListener('resize', medir);
+    return () => window.removeEventListener('resize', medir);
+  }, [navRef, pathname]);
+  return st;
 }
 
 const iniciales = (n = '') => n.replace(/\(.*?\)/g, '').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
@@ -49,6 +81,9 @@ export default function Layout() {
   const h1 = useRef();
   const primera = useRef(true);
   useEffect(() => { if (primera.current) { primera.current = false; return; } h1.current?.focus({ preventScroll: true }); document.title = `${titulo || 'Sistema'} · El Sol Siciliano`; }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ir = useIrSuave();
+  const navRef = useRef();
+  const ind = useIndicador(navRef, pathname);
   const fechaLarga = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
   return (
@@ -56,9 +91,12 @@ export default function Layout() {
       <a className="skip" href="#contenido">Saltar al contenido</a>
       <aside className="side">
         <a className="brand" href="/presentacion/index.html" title="Presentación del proyecto"><img src="/marca/sol-192.png" alt="" /><div><b>El Sol <i>Siciliano</i></b><span>Gestión de producción</span></div></a>
-        <nav className="nav" aria-label="Secciones">
+        <nav className="nav" aria-label="Secciones" ref={navRef}>
+          {ind && <span className="nav-ind" aria-hidden="true" style={{ transform: `translate(${ind.left}px, ${ind.top}px)`, width: ind.width, height: ind.height }} />}
           {ROLES[perfil.rol].vistas.map((v) => (
-            <NavLink key={v} to={`/${v}`}><span>{VISTAS[v][0]}</span>{badge[v]}</NavLink>
+            <NavLink key={v} to={`/${v}`} onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; e.preventDefault(); if (`/${v}` !== pathname) ir(`/${v}`); }}>
+              <Icono n={v} /><span className="nav-t">{VISTAS[v][0]}</span>{badge[v]}
+            </NavLink>
           ))}
         </nav>
         <div className="side-foot">
@@ -74,7 +112,7 @@ export default function Layout() {
       <main id="contenido">
         <div className="head">
           <div><h1 ref={h1} tabIndex={-1}>{titulo}</h1><p>{sub}</p></div>
-          <div className="head-der"><div className="today"><b>{fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)}</b></div><Avisos /></div>
+          <div className="head-der"><BotonBuscar /><div className="today"><b>{fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)}</b></div><Avisos /></div>
         </div>
         {!app.online && <div className="note warn" role="alert">Sin conexión a internet. Podés seguir mirando, pero los cambios no se van a guardar hasta que vuelva la conexión.</div>}
         {d.error && (
@@ -84,6 +122,7 @@ export default function Layout() {
         )}
         <div className="page" key={pathname}><Outlet /></div>
       </main>
+      <Buscador />
     </div>
   );
 }
