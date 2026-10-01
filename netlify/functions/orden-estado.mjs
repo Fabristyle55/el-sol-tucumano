@@ -55,7 +55,7 @@ export default endpoint(['gerente', 'panadero'], async (b, yo) => {
     const quedan = delDia.docs.filter((d) => d.id !== ref.id && d.data().estado !== 'terminada').length;
     let listos = 0;
     if (!quedan) {
-      enProd.docs.forEach((d) => { t.update(d.ref, { estado: 'listo' }); listos++; });
+      enProd.docs.forEach((d) => { t.update(d.ref, { estado: 'listo', listoEn: FieldValue.serverTimestamp() }); listos++; });
       if (listos) registrar(t, { nombre: 'Sistema' }, `${listos} pedidos del ${o.fecha} listos para reparto`);
     }
     return { estado: 'terminada', numero: o.numero, fecha: o.fecha, pedidosListos: listos, alDespacho: o.extra || 0 };

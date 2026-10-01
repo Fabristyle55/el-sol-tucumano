@@ -3,17 +3,21 @@
 //   Si se paga en cuenta corriente, al entregarlo se suma al saldo del cliente.
 // Minoristas (reservas del despacho, sin gerente): preparar (descuenta el stock del
 // despacho) → entregar (retirado). Cancelar devuelve el stock si ya se había preparado.
-import { db, endpoint, HttpError, FieldValue, registrar, notificar, avisarCliente } from '../lib/servidor.mjs';
-import { r3, idArticulo, fechaAR } from '../../shared/negocio.js';
+// Envíos: el repartidor los saca a reparto (en camino) y al entregarlos registra lo que
+// cobró, que entra en la caja del día. Si no pudo entregar, el pedido vuelve a "listo".
+import { db, endpoint, HttpError, FieldValue, registrar, notificar, avisarCliente, texto } from '../lib/servidor.mjs';
+import { r3, idArticulo, fechaAR, aCobrarEnEntrega, PAGOS_DESPACHO } from '../../shared/negocio.js';
 
 const ACCIONES = {
   confirmar: { roles: ['gerente'], desde: ['pendiente'], a: 'confirmado', verbo: 'Confirmó' },
   preparar: { roles: ['gerente', 'mostrador'], desde: ['reservado'], a: 'listo', verbo: 'Preparó' },
   cancelar: { roles: ['gerente', 'mostrador', 'cliente'], desde: ['pendiente', 'confirmado', 'reservado', 'listo'], a: 'cancelado', verbo: 'Canceló' },
-  entregar: { roles: ['gerente', 'mostrador'], desde: ['listo'], a: 'entregado', verbo: 'Entregó' },
+  salir: { roles: ['gerente', 'mostrador', 'repartidor'], desde: ['listo'], a: 'en_camino', verbo: 'Sacó a reparto' },
+  entregar: { roles: ['gerente', 'mostrador', 'repartidor'], desde: ['listo', 'en_camino'], a: 'entregado', verbo: 'Entregó' },
+  'no-entregado': { roles: ['gerente', 'mostrador', 'repartidor'], desde: ['en_camino'], a: 'listo', verbo: 'No pudo entregar' },
 };
 
-export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
+export default endpoint(['gerente', 'mostrador', 'cliente', 'repartidor'], async (b, yo) => {
   const acc = ACCIONES[b.accion];
   if (!acc) throw new HttpError(400, 'Acción desconocida.');
   if (!acc.roles.includes(yo.rol)) throw new HttpError(403, 'Tu usuario no puede hacer esta acción.');
@@ -32,6 +36,18 @@ export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
     if (!acc.desde.includes(p.estado)) throw new HttpError(409, `El pedido #${p.numero} está ${p.estado} y no se puede ${b.accion}.`);
     if (b.accion === 'confirmar' && minorista) throw new HttpError(409, 'Las reservas minoristas no necesitan confirmación.');
     if (b.accion === 'cancelar' && p.estado === 'listo' && !minorista) throw new HttpError(409, 'El pedido ya está producido; no se puede cancelar.');
+    const envio = p.modoEntrega !== 'retiro';
+    if (b.accion === 'salir' && !envio) throw new HttpError(409, 'Ese pedido se retira en el local; no sale a reparto.');
+    if (yo.rol === 'repartidor' && !envio) throw new HttpError(403, 'El repartidor solo entrega pedidos con envío.');
+    // Lo cobrado en la entrega (lo informa el repartidor o quien la marca); entra en la caja del día.
+    let cobro = null;
+    if (b.accion === 'entregar' && envio && p.pago !== 'Cuenta corriente' && (b.cobrado != null || yo.rol === 'repartidor')) {
+      const monto = b.cobrado == null ? aCobrarEnEntrega(p) : Math.round(Number(b.cobrado));
+      if (!(monto >= 0) || monto > (p.total || 0) * 2 + 1) throw new HttpError(400, 'El monto cobrado no es válido.');
+      cobro = { cobrado: monto, pagoCobrado: PAGOS_DESPACHO.includes(b.medio) ? b.medio : (p.pago === 'Transferencia' ? 'Transferencia' : 'Efectivo') };
+    }
+    const motivo = texto(b.motivo, 160);
+    if (b.accion === 'no-entregado' && !motivo) throw new HttpError(400, 'Contá por qué no se pudo entregar.');
 
     // Cuenta corriente: al entregar un pedido mayorista se carga al saldo del cliente.
     const aCuenta = b.accion === 'entregar' && !minorista && p.pago === 'Cuenta corriente' && p.clienteId;
@@ -74,14 +90,17 @@ export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
     }
 
     const cambios = { estado: acc.a, [`${acc.a}En`]: FieldValue.serverTimestamp() };
-    if (b.accion === 'entregar') cambios.entregadoDia = fechaAR(0);
+    if (b.accion === 'entregar') { cambios.entregadoDia = fechaAR(0); cambios.entregadoPor = yo.nombre || yo.email; if (cobro) Object.assign(cambios, cobro); }
+    if (b.accion === 'salir') cambios.repartidor = yo.nombre || yo.email;
+    if (b.accion === 'no-entregado') cambios.intentos = FieldValue.arrayUnion({ motivo, dia: fechaAR(0), por: yo.nombre || yo.email });
     t.update(ref, cambios);
-    registrar(t, yo, `${acc.verbo} ${minorista ? 'la reserva' : 'el pedido'} #${p.numero} de ${p.clienteNombre}${cliSnap?.exists ? ' (a cuenta corriente)' : ''}`);
+    registrar(t, yo, `${acc.verbo} ${minorista ? 'la reserva' : 'el pedido'} #${p.numero} de ${p.clienteNombre}${cliSnap?.exists ? ' (a cuenta corriente)' : ''}${cobro ? ` · cobró ${cobro.cobrado.toLocaleString('es-AR')} (${cobro.pagoCobrado})` : ''}${motivo && b.accion === 'no-entregado' ? `: ${motivo}` : ''}`);
     return { numero: p.numero, estado: acc.a, cliente: p.clienteNombre, clienteUid: p.clienteUid, minorista, pedido: p };
   });
   if (!res.minorista) await notificar(`pedido_${res.estado}`, { numero: res.numero, estado: res.estado, cliente: res.cliente, clienteUid: res.clienteUid });
   if (b.accion === 'confirmar') await avisarCliente('confirmado', res.pedido);
-  if (b.accion === 'preparar') await avisarCliente('reserva-lista', res.pedido);
+  if (b.accion === 'preparar' && res.pedido.modoEntrega === 'retiro') await avisarCliente('reserva-lista', res.pedido);
+  if (b.accion === 'salir') await avisarCliente('en-camino', res.pedido);
   const { pedido, ...salida } = res;
   return salida;
 });

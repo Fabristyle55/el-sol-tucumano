@@ -1,7 +1,7 @@
 // Alta de usuarios del personal y de clientes mayoristas (solo el gerente).
 import { db, adminAuth, endpoint, HttpError, FieldValue, registrar, texto } from '../lib/servidor.mjs';
 
-const ROLES_PERSONAL = ['gerente', 'mostrador', 'panadero', 'deposito'];
+const ROLES_PERSONAL = ['gerente', 'mostrador', 'panadero', 'deposito', 'repartidor'];
 
 export default endpoint(['gerente'], async (b, yo) => {
   const base = db();

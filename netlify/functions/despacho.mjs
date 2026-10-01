@@ -9,7 +9,7 @@
 //   merma     → registra lo que sobró, venció o se rompió (sale del stock y queda para el análisis)
 //   cierre    → cierre de caja del día: compara el efectivo contado con lo que debería haber
 import { db, endpoint, HttpError, FieldValue, registrar, siguienteNumero, texto } from '../lib/servidor.mjs';
-import { r3, fechaAR, esFecha, precioArticulo, precioBaseArticulo, cantidadValida, resumenCaja, CATEGORIAS_DESPACHO, PAGOS_DESPACHO, MOTIVOS_MERMA } from '../../shared/negocio.js';
+import { r3, fechaAR, esFecha, precioArticulo, precioBaseArticulo, cantidadValida, resumenCaja, cobrosDelDia, CATEGORIAS_DESPACHO, PAGOS_DESPACHO, MOTIVOS_MERMA } from '../../shared/negocio.js';
 
 const mov = (t, base, a, cantidad, motivo, yo) => t.set(base.collection('movDespacho').doc(), {
   articuloId: a.id, articuloNombre: a.nombre, unidad: a.unidad || 'u', cantidad, motivo,
@@ -134,7 +134,7 @@ export default endpoint(['gerente', 'mostrador'], async (b, yo) => {
       const vs = await t.get(base.collection('ventas').where('dia', '==', dia));
       const rs = await t.get(base.collection('pedidos').where('entregadoDia', '==', dia));
       const ventas = vs.docs.map((d) => d.data());
-      const reservas = rs.docs.map((d) => d.data()).filter((p) => p.tipoCliente === 'minorista');
+      const reservas = cobrosDelDia(rs.docs.map((d) => d.data()));
       const r = resumenCaja(ventas, reservas);
       const esperado = fondo + r.efectivo;
       const diferencia = contado - esperado;

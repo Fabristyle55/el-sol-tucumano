@@ -54,7 +54,7 @@ export default endpoint(['gerente'], async (b, yo) => {
       });
     }
     t.set(base.doc('contadores/ordenes'), { valor: n - 1 });
-    for (const p of pedidos) t.update(base.doc(`pedidos/${p.id}`), { estado: 'produccion' });
+    for (const p of pedidos) t.update(base.doc(`pedidos/${p.id}`), { estado: 'produccion', produccionEn: FieldValue.serverTimestamp() });
     registrar(t, yo, `Generó ${ids.length} órdenes de producción para el ${b.fecha} (${pedidos.length} pedidos)`);
     return { ordenes: ids.length, pedidos: pedidos.length, fecha: b.fecha };
   });

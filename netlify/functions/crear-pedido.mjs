@@ -7,7 +7,7 @@
 // Minoristas: se arman con lo que hay en el despacho (elaborados y reventa);
 //   entran directamente como "reservados", sin autorización del gerente.
 import { db, endpoint, HttpError, FieldValue, registrar, siguienteNumero, notificar, texto, avisarCliente } from '../lib/servidor.mjs';
-import { fechaAR, esFecha, FORMAS_PAGO, MODOS_ENTREGA, precioPara, precioArticulo, cantidadValida, estadoCuenta } from '../../shared/negocio.js';
+import { fechaAR, esFecha, FORMAS_PAGO, MODOS_ENTREGA, precioPara, precioArticulo, cantidadValida, estadoCuenta, aplicarPromos, codigoCupon, promoVigente } from '../../shared/negocio.js';
 
 export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
   const pago = FORMAS_PAGO.includes(b.pago) || ['Débito', 'Crédito', 'Mercado Pago'].includes(b.pago) ? b.pago : 'Efectivo';
@@ -56,6 +56,10 @@ export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
   if (minorista) estado = 'reservado';
   else if (b.confirmar && yo.rol === 'gerente') estado = 'confirmado';
 
+  // Promociones por cantidad vigentes y cupón (si mandaron uno).
+  const promos = (await base.collection('promos').where('tipo', '==', 'cantidad').get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+  const codigo = codigoCupon(b.cupon);
+
   const crudos = Array.isArray(b.items) ? b.items : [];
   const res = await base.runTransaction(async (t) => {
     let lineas;
@@ -85,8 +89,19 @@ export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
         return { productoId: i.productoId, nombre: s.data().nombre, cantidad: i.cantidad, precio: precioPara(s.data(), tipoCliente) };
       });
     }
+    let cupon = null; let cuponRef = null;
+    if (codigo) {
+      cuponRef = base.doc(`promos/cupon-${codigo}`);
+      const cs = await t.get(cuponRef);
+      if (!cs.exists) throw new HttpError(400, 'El cupón no existe. Sacalo o revisá el código.');
+      cupon = cs.data();
+      if (!promoVigente(cupon, tipoCliente, fechaAR(0))) throw new HttpError(409, 'El cupón ya no está vigente. Sacalo para continuar.');
+    }
+    const calc = aplicarPromos(lineas, promos, tipoCliente, cupon, fechaAR(0));
+    if (cupon && !calc.cuponOk) throw new HttpError(409, calc.motivoCupon);
+    lineas = calc.lineas;
     const num = await siguienteNumero(t, 'pedidos', 1000);
-    const total = Math.round(lineas.reduce((a, l) => a + l.cantidad * l.precio, 0));
+    const total = calc.total;
     const ref = base.collection('pedidos').doc();
     t.set(ref, {
       numero: num.valor,
@@ -97,15 +112,16 @@ export default endpoint(['gerente', 'mostrador', 'cliente'], async (b, yo) => {
       direccion: cliente.direccion || '',
       telefono: cliente.telefono || '',
       tipoCliente, modoEntrega,
-      canal, entrega: b.entrega, items: lineas, total, pago,
+      canal, entrega: b.entrega, items: lineas, subtotal: calc.subtotal, descuento: calc.descuento, ...(cupon ? { cupon: codigo, descCupon: calc.descCupon } : {}), total, pago,
       notas: texto(b.notas, 500),
       estado,
       creado: FieldValue.serverTimestamp(),
       creadoPor: yo.nombre || yo.email,
     });
     num.guardar();
+    if (cuponRef) t.update(cuponRef, { usos: FieldValue.increment(1) });
     const que = minorista ? 'Reserva' : (canal === 'web' ? 'Nuevo pedido web' : 'Pedido de mostrador');
-    registrar(t, yo, `${que} #${num.valor} de ${cliente.nombre}`);
+    registrar(t, yo, `${que} #${num.valor} de ${cliente.nombre}${calc.descuento ? ` (descuento $${calc.descuento.toLocaleString('es-AR')}${cupon ? `, cupón ${codigo}` : ''})` : ''}`);
     return {
       id: ref.id, numero: num.valor, estado, total, cliente: cliente.nombre, tipoCliente, modoEntrega,
       pedido: { numero: num.valor, clienteId: cliente.id, clienteUid: cliente.uid || null, clienteNombre: cliente.nombre, entrega: b.entrega, items: lineas, total },
