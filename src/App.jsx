@@ -23,11 +23,13 @@ import Historial from './pages/Historial';
 import Recorrido from './pages/Recorrido';
 import Reparto from './pages/Reparto';
 import Comprobante from './pages/Comprobante';
+import Entregas from './pages/Entregas';
+import Promociones from './pages/Promociones';
 
 const PAGINAS = {
   panel: Panel, pedidos: Pedidos, planificacion: Planificacion, produccion: Produccion, stock: Stock,
   despacho: Despacho, productos: Productos, recetas: Recetas, compras: Compras, usuarios: Usuarios, catalogo: Catalogo, 'mis-pedidos': MisPedidos,
-  cuentas: Cuentas, reportes: Reportes, historial: Historial, recorrido: Recorrido, reparto: Reparto, comprobante: Comprobante,
+  cuentas: Cuentas, reportes: Reportes, historial: Historial, recorrido: Recorrido, reparto: Reparto, comprobante: Comprobante, entregas: Entregas, promociones: Promociones,
 };
 
 export default function App() {
