@@ -391,6 +391,16 @@ footer b{color:var(--ink)}
   .ventana{transform:none}.barras i{transform:none}
   html{scroll-behavior:auto}
 }
+/* ---------- Descargas de El Sol App ---------- */
+.descargas{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.descarga{display:flex;flex-direction:column;gap:12px;padding:26px;border-radius:22px;border:1px solid var(--line);background:var(--surface);box-shadow:0 18px 40px -28px rgba(0,0,0,.35)}
+.descarga .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--verde) 12%,transparent);color:var(--verde)}
+.descarga .ic svg{width:28px;height:28px}
+.descarga h3{font-size:22px;letter-spacing:-.01em}
+.descarga p{color:var(--muted);font-size:15px;line-height:1.5;flex:1}
+.descarga .btn{align-self:flex-start;padding:12px 20px;font-size:14px}
+.descarga small{color:var(--muted);font-size:12.5px}
+@media (max-width:900px){.descargas{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -405,6 +415,7 @@ footer b{color:var(--ink)}
       <a href="#modelo">Modelo</a>
       <a href="#recorrido">Recorrido</a>
       <a href="#funciones">Funciones</a>
+      <a href="#app">App</a>
     </nav>
     <div class="head-actions">
       <button class="icon-btn" type="button" id="tema" aria-label="Cambiar tema"></button>
@@ -430,7 +441,7 @@ footer b{color:var(--ink)}
         <p class="lead">El sistema de Panificación El Sol Siciliano toma los pedidos, calcula con las recetas cuánta harina, levadura y manteca hace falta, arma las órdenes para los panaderos, organiza el reparto y avisa qué comprar antes de que falte.</p>
         <div class="ctas">
           <a class="btn magnet" href="/login">Probar el sistema <span class="arrow">→</span></a>
-          <a class="btn ghost" href="#recorrido">Ver cómo funciona</a>
+          <a class="btn ghost" href="#app">Descargar la app</a>
         </div>
         <div class="confian">
           <div class="avatares" aria-hidden="true"><span style="background:#167B41">G</span><span style="background:#CD211D">M</span><span style="background:#B98F06">P</span><span style="background:#2D5D8E">R</span></div>
@@ -598,6 +609,36 @@ footer b{color:var(--ink)}
         <div class="reveal d1"><b data-cuenta="21">0</b><span>pantallas para el día a día</span></div>
         <div class="reveal d2"><b data-cuenta="18">0</b><span>funciones en el servidor con las reglas del negocio</span></div>
         <div class="reveal d3"><b data-cuenta="24">0</b><span>pruebas automáticas de la lógica</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== APP ===================== -->
+  <section class="sec" id="app" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-h reveal"><span class="eyebrow">El Sol App</span><h2>Llevá la panadería <em>en el bolsillo</em></h2><p>Una versión más sencilla y rápida del sistema: cada perfil ve solo lo de su día. Usa los mismos usuarios y los mismos datos.</p></div>
+      <div class="descargas">
+        <div class="descarga reveal">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
+          <h3>Android</h3>
+          <p>Descargá el APK e instalalo. Si el celular lo bloquea, permití «instalar apps de esta fuente» y, si aparece Play Protect, «Instalar de todas formas».</p>
+          <a class="btn magnet" href="https://github.com/Fabristyle55/el-sol-tucumano/releases/latest/download/ElSolApp.apk">Descargar APK <span class="arrow">↓</span></a>
+          <small>4,4 MB · Android 7 o más nuevo</small>
+        </div>
+        <div class="descarga reveal d1">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+          <h3>Windows</h3>
+          <p>Instalador con acceso directo en el escritorio. Si Windows avisa «protegió su PC», tocá «Más información → Ejecutar de todas formas».</p>
+          <a class="btn magnet" href="https://github.com/Fabristyle55/el-sol-tucumano/releases/latest/download/ElSolApp-Setup-1.0.0.exe">Descargar para Windows <span class="arrow">↓</span></a>
+          <small>92 MB · Windows 10 u 11</small>
+        </div>
+        <div class="descarga reveal d2">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+          <h3>Sin descargar nada</h3>
+          <p>Abrila en el navegador del celular, iPhone o computadora y elegí «Instalar app» o «Agregar a pantalla de inicio».</p>
+          <a class="btn ghost" href="/app">Abrir El Sol App <span class="arrow">→</span></a>
+          <small>Funciona en Android, iPhone, Windows y Mac</small>
+        </div>
       </div>
     </div>
   </section>

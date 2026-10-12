@@ -14,6 +14,9 @@ export const MENSAJES_AUTH = {
   'auth/network-request-failed': 'No hay conexión. Revisá tu internet.',
 };
 
+// Instaladores de El Sol App publicados en GitHub (siempre la última versión).
+const DESCARGAS = 'https://github.com/Fabristyle55/el-sol-tucumano/releases/latest/download/';
+
 // Cuentas que crea "npm run seed" para probar cada rol en la presentación.
 const DEMO = [
   ['Gerente', 'gerente@elsol.demo'], ['Mostrador', 'mostrador@elsol.demo'], ['Panadero', 'panadero@elsol.demo'],
@@ -92,6 +95,14 @@ export default function Login() {
             {DEMO.map(([r, m]) => (
               <button key={m} type="button" title={m} onClick={() => { setEmail(m); setPass('elsol2026'); }}>{r}</button>
             ))}
+          </div>
+          <div className="bajar-app">
+            <span className="lbl">El Sol App · versión rápida para celular y computadora</span>
+            <div>
+              <a className="btn sm" href={`${DESCARGAS}ElSolApp.apk`}>Android</a>
+              <a className="btn sm" href={`${DESCARGAS}ElSolApp-Setup-1.0.0.exe`}>Windows</a>
+              <a className="btn sm" href="/app">Abrir en el navegador</a>
+            </div>
           </div>
         </form>
       </div>

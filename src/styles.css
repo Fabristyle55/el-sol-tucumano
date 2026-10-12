@@ -755,3 +755,8 @@ input, select, textarea { transition: border-color .15s, box-shadow .2s }
 }
 @media (pointer: coarse) { .buscar-btn { height: 40px } .paleta-pie { display: none } }
 @media (prefers-reduced-motion: reduce) { .nav-ind { transition: none } }
+
+/* Descargas de El Sol App en la pantalla de ingreso */
+.bajar-app { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line) }
+.bajar-app .lbl { font-size: 12px; color: var(--muted) }
+.bajar-app > div { display: flex; flex-wrap: wrap; gap: 6px }

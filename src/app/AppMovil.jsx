@@ -112,7 +112,12 @@ const DEMO = [
   ['Repartidor', 'repartidor@elsol.demo'], ['Cliente', 'cliente@elsol.demo'], ['Minorista', 'minorista@elsol.demo'],
 ];
 
+// Instaladores publicados en GitHub (siempre la última versión).
+const DESCARGAS = 'https://github.com/Fabristyle55/el-sol-tucumano/releases/latest/download/';
+
 function Ingreso() {
+  // Dentro de la app instalada (APK, .exe o instalada desde el navegador) no tiene sentido ofrecer la descarga.
+  const enApp = window.matchMedia?.('(display-mode: standalone)').matches || /Electron|; wv\)/.test(navigator.userAgent) || !!window.Capacitor;
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [error, setError] = useState('');
@@ -133,6 +138,7 @@ function Ingreso() {
         {error && <div className="err-box">{error}</div>}
         <button className="btn primary am-xl" type="submit" disabled={ocupado}>{ocupado ? 'Ingresando…' : 'Ingresar'}</button>
         <p className="small muted" style={{ textAlign: 'center', margin: 0 }}>¿No tenés cuenta? <a href="/registro">Registrate como cliente</a></p>
+        {!enApp && <p className="small muted am-bajar">Descargá la app: <a href={`${DESCARGAS}ElSolApp.apk`}>Android</a> · <a href={`${DESCARGAS}ElSolApp-Setup-1.0.0.exe`}>Windows</a></p>}
         <div className="am-demo">
           <span>Cuentas de prueba · contraseña elsol2026</span>
           <div>{DEMO.map(([r, m]) => <button key={m} type="button" onClick={() => { setEmail(m); setPass('elsol2026'); }}>{r}</button>)}</div>
