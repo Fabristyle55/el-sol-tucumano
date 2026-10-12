@@ -59,11 +59,15 @@ npm run dist
 ```
 
 - `npm start` abre la app en una ventana para probarla.
-- `npm run dist` genera el instalador en `dist\El Sol App Setup 1.0.0.exe`. Al instalarlo crea el acceso directo en el escritorio y en el menú Inicio.
+- `npm run dist` genera el instalador en `dist\ElSolApp-Setup-1.0.0.exe`. Al instalarlo crea el acceso directo en el escritorio y en el menú Inicio.
 
 Windows puede mostrar "Windows protegió su PC" porque el instalador no está firmado: **Más información → Ejecutar de todas formas**.
 
 ---
+
+## 4. Sin instalar nada: compilación automática en GitHub
+
+El repositorio tiene una tarea automática (`.github/workflows/apps-nativas.yml`) que compila el `.exe` y el `.apk` en los servidores de GitHub cada vez que se actualiza la rama `apps-nativas`, y los publica en la sección **Releases** del repositorio, listos para descargar.
 
 ## Notas
 

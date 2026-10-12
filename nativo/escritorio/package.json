@@ -19,7 +19,7 @@
     "productName": "El Sol App",
     "directories": { "output": "dist" },
     "files": ["main.js", "build/icon.png"],
-    "win": { "target": "nsis", "icon": "build/icon.ico" },
+    "win": { "target": "nsis", "icon": "build/icon.ico", "artifactName": "ElSolApp-Setup-${version}.${ext}" },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,

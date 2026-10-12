@@ -1,0 +1,70 @@
+# Compila El Sol App para Windows (.exe) y Android (.apk) en los servidores de GitHub
+# y publica los instaladores en la sección "Releases" del repositorio.
+name: Apps nativas
+
+on:
+  push:
+    branches: [apps-nativas]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults: { run: { working-directory: nativo/escritorio } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install
+      - run: npm run dist
+        env: { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }
+      - uses: actions/upload-artifact@v4
+        with: { name: el-sol-app-windows, path: 'nativo/escritorio/dist/*.exe' }
+
+  android:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: nativo/android } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: android-actions/setup-android@v3
+      - run: npm install
+      - run: npx cap add android && npx cap sync android
+      - name: Ícono de la app
+        run: |
+          sudo apt-get install -y -qq imagemagick >/dev/null
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            n=${d%%:*}; s=${d##*:}
+            for f in ic_launcher ic_launcher_round; do
+              convert icono.png -resize ${s}x${s} android/app/src/main/res/mipmap-$n/$f.png
+            done
+            convert icono.png -resize $((s*3/2))x$((s*3/2)) -gravity center -background none -extent $((s*9/4))x$((s*9/4)) android/app/src/main/res/mipmap-$n/ic_launcher_foreground.png
+          done
+      - run: ./gradlew assembleDebug
+        working-directory: nativo/android/android
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk ElSolApp.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: el-sol-app-android, path: nativo/android/ElSolApp.apk }
+
+  publicar:
+    needs: [windows, android]
+    if: always() && (needs.windows.result == 'success' || needs.android.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: salida }
+      - name: Publicar en Releases
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          ls -R salida
+          etiqueta="app-v1.0.${{ github.run_number }}"
+          gh release create "$etiqueta" --repo "${{ github.repository }}" --target "${{ github.sha }}" \
+            --title "El Sol App ${etiqueta#app-v}" \
+            --notes "Instaladores de El Sol App: Windows (.exe) y Android (.apk). Abren la app publicada en elsoltucumano.netlify.app/app." \
+            $(find salida -type f \( -name '*.exe' -o -name '*.apk' \))
