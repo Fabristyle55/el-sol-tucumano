@@ -1,0 +1,12 @@
+{
+  "appId": "ar.elsol.app",
+  "appName": "El Sol",
+  "webDir": "www",
+  "server": {
+    "url": "https://elsoltucumano.netlify.app/app/",
+    "cleartext": false
+  },
+  "android": {
+    "backgroundColor": "#F4F5F3"
+  }
+}

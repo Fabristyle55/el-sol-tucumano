@@ -1,8 +1,10 @@
 // Service worker de El Sol Siciliano: permite instalar el sistema como app y
 // que abra aunque la conexión esté mala. Los datos siempre se piden en vivo a
 // Firebase y al backend; acá solo se guardan los archivos de la aplicación.
-const CACHE = 'el-sol-v2';
-const BASE = ['/app', '/marca/sol-192.png', '/marca/sol-512.png', '/marca/logo.jpg', '/manifest.webmanifest'];
+const CACHE = 'el-sol-v3';
+const BASE = ['/app', '/marca/sol-192.png', '/marca/sol-512.png', '/marca/logo.jpg', '/manifest.webmanifest', '/app.webmanifest'];
+// Cada parte guarda su propia página para abrir sin conexión: El Sol App (/app) y la página completa.
+const paginaDe = (path) => (path === '/app' || path.startsWith('/app/') ? '/app' : '/_sistema');
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASE)).then(() => self.skipWaiting()));
@@ -19,8 +21,9 @@ self.addEventListener('fetch', (e) => {
 
   // Páginas: primero la red (siempre la versión nueva); sin conexión, la última guardada.
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then((r) => { const copia = r.clone(); caches.open(CACHE).then((c) => c.put('/app', copia)); return r; })
-      .catch(() => caches.match('/app')));
+    const clave = paginaDe(url.pathname);
+    e.respondWith(fetch(req).then((r) => { if (r.ok) { const copia = r.clone(); caches.open(CACHE).then((c) => c.put(clave, copia)); } return r; })
+      .catch(() => caches.match(clave)));
     return;
   }
   // Archivos con nombre versionado (JS, CSS, imágenes de la marca): primero la caché.

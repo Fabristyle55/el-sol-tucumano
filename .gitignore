@@ -8,3 +8,8 @@ dist/
 *.log
 .DS_Store
 deno.lock
+
+# Apps nativas (se generan al compilar)
+nativo/*/node_modules/
+nativo/escritorio/dist/
+nativo/android/android/

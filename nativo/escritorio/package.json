@@ -1,0 +1,31 @@
+{
+  "name": "el-sol-app-escritorio",
+  "productName": "El Sol App",
+  "version": "1.0.0",
+  "description": "El Sol App para Windows: versión rápida del sistema de Panificación El Sol Siciliano.",
+  "author": "Santillan Giuliano, Gomez Tolra, Ralle, Pumara",
+  "license": "UNLICENSED",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^37.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "ar.elsol.app",
+    "productName": "El Sol App",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "build/icon.png"],
+    "win": { "target": "nsis", "icon": "build/icon.ico" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "El Sol App"
+    }
+  }
+}

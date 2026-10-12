@@ -3,7 +3,7 @@
   "short_name": "El Sol",
   "description": "Pedidos, producción, despacho, stock y compras de Panificación El Sol Siciliano.",
   "lang": "es-AR",
-  "start_url": "/app",
+  "start_url": "/inicio",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",

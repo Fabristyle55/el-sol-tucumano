@@ -25,6 +25,17 @@
   to = "/presentacion/index.html"
   status = 302
 
+# El Sol App (versión sencilla para celular y escritorio).
+[[redirects]]
+  from = "/app"
+  to = "/app.html"
+  status = 200
+
+[[redirects]]
+  from = "/app/*"
+  to = "/app.html"
+  status = 200
+
 # El resto de las rutas las maneja React (aplicación de una sola página).
 [[redirects]]
   from = "/*"

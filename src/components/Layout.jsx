@@ -106,6 +106,7 @@ export default function Layout() {
             <TemaToggle />
           </div>
           {app.instalar && <button className="btn sm" type="button" onClick={app.instalar}>Instalar la app</button>}
+          <a className="linkbtn small" href="/app">Abrir El Sol App (versión rápida)</a>
           <a className="linkbtn small solo-escritorio" href="/presentacion/index.html">Presentación del proyecto</a>
         </div>
       </aside>
